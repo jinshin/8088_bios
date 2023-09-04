@@ -1,5 +1,5 @@
 ;=========================================================================
-; sound.inc - Play power-on sound. This also tests PIT and PORT B functionality
+; soundalt.inc - Play alternate power-on sound. This also tests PIT and PORT B functionality
 ;-------------------------------------------------------------------------
 ;
 ; Compiles with NASM 2.13.02, might work with other versions
@@ -22,12 +22,9 @@
 ;
 ;=========================================================================
 
-notes	dw	pic_freq/554		; D flat
-	dw	-1			; silent
-	dw	pic_freq/277		; D flat
-	dw	pic_freq/370		; G flat
-	dw	pic_freq/277		; D flat
-	dw	pic_freq/415		; A flat
+notes   dw	pic_freq/262		;C G D
+	dw	pic_freq/393
+	dw      pic_freq/589
 	dw	0
 
 ;=========================================================================
@@ -58,17 +55,16 @@ sound:
         out     ppi_pb_reg,al		; write the new value
 
 .silent:
-	mov	cx,3000h
+	mov	cx,2000h		; was 3000h
 	call	delay_15us		; delay while note is playing
 
 	in	al,ppi_pb_reg		; read current value of PORT B
 	and	al,0FCh			; turn off the speaker
         out     ppi_pb_reg,al		; write the new value
 
-        mov     cx,0100h
+        mov     cx,0050h		; was 100h
 	call	delay_15us		; delay after the note
         
         jmp     .loop			; play the next note
 .exit:
 	ret
-

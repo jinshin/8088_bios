@@ -65,11 +65,18 @@
 
 ; Settings for Book8088
 %ifdef MACHINE_BOOK8088
+%define BOOT_SOUND	1		; Now it plays floppy seek and beep sound
+%ifdef BOOT_SOUND
+%define	START		08000h		; BIOS starts at 08000h - 32 KiB, we need that to store sound
+%else
 %define	START		0C000h		; BIOS starts at 0C000h - 16 KiB total
+%endif
 %define MODEL_BYTE	0FEh		; IBM PC/XT
 %define MIN_RAM_SIZE	32		; At least 32 KiB to boot the system
 %define MAX_RAM_SIZE	640		; Scan this much memory during POST
 %define RAM_TEST_BLOCK	16384		; block size for RAM test
+%define NO_FLOPPY	1		; Book8088 has no floppy drives
+%define ALT_SOUND	1		; Alternate sound, choosen by playing notes on online piano
 %endif ; MACHINE_BOOK8088
 
 ; Settings for IBM PC/XT

@@ -280,7 +280,15 @@ mouse_data	equ	28h	; 8 bytes - mouse data buffer
 %endif ; SECOND_PIC
 %include	"ps2aux.inc"
 %endif
+%ifdef BOOT_SOUND
+%include	"bootplay.inc"
+%endif
+%ifdef ALT_SOUND
+%include	"soundalt.inc"		; alternate sound
+%else
 %include	"sound.inc"		; sound test
+%endif
+%include	"beep.inc"
 %include	"cpu.inc"		; CPU and FPU detection
 
 %ifdef SECOND_PIC
@@ -347,6 +355,10 @@ boot_os:
 %endif ; BIOS_SETUP
 
 .no_setup:
+
+%ifdef BOOT_SOUND
+	call	bootsound
+%endif
 
 %ifdef TURBO_MODE
 %ifdef BIOS_SETUP

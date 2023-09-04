@@ -25,6 +25,8 @@ FLASH_ROM=SST39SF010A
 
 XTIDE_300=../xtide_r625/ide_xt-cf-lite_300h.bin
 XTIDE_300_V20=../xtide_r625/ide_xtp-cf-lite_300h.bin
+XTIDE_300_FULL=../xtide_r625/ide_xt-cf_300h.bin
+XTIDE_300_V20_FULL=../xtide_r625/ide_xtp-cf_300h.bin
 XTIDE_320=../xtide_r625/ide_xt-cf-lite_320h.bin
 
 SOURCES=bios.asm macro.inc at_kbc.inc config.inc errno.inc flash.inc floppy1.inc floppy2.inc keyboard.inc misc.inc printer1.inc printer2.inc ps2aux.inc scancode.inc serial1.inc serial2.inc setup.inc sound.inc time1.inc time2.inc video.inc cpu.inc messages.inc inttrace.inc rtc.inc fnt00-7F.inc fnt80-FF.inc
@@ -78,15 +80,31 @@ bios-xi8088-xtide.rom: bios-xi8088.bin $(XTIDE_320)
 	cat bios-xi8088.bin >> bios-xi8088-xtide.rom
 	dd if=/dev/zero ibs=1k count=64 | LANG=C tr "\000" "\377" >> bios-xi8088-xtide.rom
 
-bios-book8088-xtide.rom: bios-book8088.bin $(XTIDE_300)
-	cat $(XTIDE_300) > bios-book8088-xtide.rom
-	dd if=/dev/zero ibs=1k count=40 | LANG=C tr "\000" "\377" >> bios-book8088-xtide.rom
-	cat bios-book8088.bin >> bios-book8088-xtide.rom
+BOOK8088=bios-book8088.bin
 
-bios-book8088-xtide-v20.rom: bios-book8088.bin $(XTIDE_300_V20)
-	cat $(XTIDE_300_V20) > bios-book8088-xtide-v20.rom
-	dd if=/dev/zero ibs=1k count=40 | LANG=C tr "\000" "\377" >> bios-book8088-xtide-v20.rom
-	cat bios-book8088.bin >> bios-book8088-xtide-v20.rom
+bios-book8088-xtide.rom: bios-book8088.bin $(XTIDE_300_FULL)
+	@echo "Generating $@"
+	$(eval XTIDESIZE=$(shell du -B 512 --apparent-size $(XTIDE_300_FULL) | awk '{print $$1;}'))
+	$(eval BIOSSIZE=$(shell du -B 512 --apparent-size $(BOOK8088) | awk '{print $$1;}'))
+	# We have 64K (128 pages) BIOS chip
+	$(eval GAPSIZE=$(shell awk -v SZ1=$(BIOSSIZE) -v SZ2=$(XTIDESIZE) 'BEGIN { print 128-SZ1-SZ2; }'))
+	@echo "GAPSIZE: $(GAPSIZE)"
+	cat $(XTIDE_300_FULL) >> $@
+	# Fill gap to the main BIOS, use 512 blocks corresponding to BIOS page size
+	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" >> $@
+	cat $(BOOK8088) >> $@
+
+bios-book8088-xtide-v20.rom: bios-book8088.bin $(XTIDE_300_V20_FULL)
+	@echo "Generating $@"
+	$(eval XTIDESIZE=$(shell du -B 512 --apparent-size $(XTIDE_300_V20_FULL) | awk '{print $$1;}'))
+	$(eval BIOSSIZE=$(shell du -B 512 --apparent-size $(BOOK8088) | awk '{print $$1;}'))
+	# We have 64K (128 pages) BIOS chip
+	$(eval GAPSIZE=$(shell awk -v SZ1=$(BIOSSIZE) -v SZ2=$(XTIDESIZE) 'BEGIN { print 128-SZ1-SZ2; }'))
+	@echo "GAPSIZE: $(GAPSIZE)"
+	cat $(XTIDE_300_V20_FULL) >> $@
+	# Fill gap to the main BIOS, use 512 blocks corresponding to BIOS page size
+	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" >> $@
+	cat $(BOOK8088) >> $@
 
 clean:
 	rm -f bios-micro8088.lst bios-xi8088.lst bios-book8088.lst bios-xt.lst bios-micro8088.bin bios-xi8088.bin bios-book8088.bin bios-xt.bin $(IMAGES)

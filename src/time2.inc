@@ -78,10 +78,8 @@ int_08:
 	jnz	.1
 	and	byte [fdc_motor_state],0F0h ; update fdc_motor_state byte
 	mov	al,0Ch			; turn off motors, enable DMA + IRQ
-	push	dx
 	mov	dx,fdc_dor_reg		; write it to Digital Output register
 	out	dx,al
-	pop	dx
 .1:
 	inc	word [ticks_lo]
 	jnz	.2

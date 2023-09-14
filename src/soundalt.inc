@@ -5,6 +5,7 @@
 ; Compiles with NASM 2.13.02, might work with other versions
 ;
 ; Copyright (C) 2010 - 2023 Sergey Kiselev.
+; Parts (C) 2023 Serhii Liubshin
 ; Provided for hobbyist use on the Xi 8088 and Micro 8088 boards.
 ;
 ; This program is free software: you can redistribute it and/or modify

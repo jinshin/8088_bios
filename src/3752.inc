@@ -2,6 +2,7 @@
 ; Emulation via ch375 chip
 ; parts taken from floppy1.inc and floppy2.inc for compatibility
 ; Made bu Serhii Liubshin, 2023
+; Second part to preserve int location
 
 ;=========================================================================
 ; int_13 - BIOS floppy disk services
@@ -70,6 +71,7 @@ int_13:
 	cmp	al,usb_connect
 	jne	.no_disk
 
+;You might see here an ugly attempt to detect disk change, but it's not working
 .go13_reset:
 	call	reset_controller
 	call	read_boot
@@ -228,7 +230,7 @@ chs_to_lba:
 .exit:
 	ret
 	
-
+;You might see here an ugly attempt to detect disk change, but it's not working
 int_13_reset:
 	call	reset_controller
 	call	read_boot
@@ -296,16 +298,14 @@ detect_floppy:
 	mov	al,1
 	mov	[fd_enabled],al
 	mov	[fd_media],al
-	
-	je	.exit
 	or	byte [equipment_list],equip_floppies
 .exit:
 	pop	dx
 	pop	ds
 	ret
 
-msg_ch375	db	'Floppy drive 0: CH375 USB', 00h
-msg_nousb	db	'No floppy drives installed', 00h
+msg_ch375	db	'Floppy disk drives:         Drive 0: CH375 USB', 00h
+msg_nousb	db	'Floppy disk drives:         None', 00h
 
 print_floppy:
 	push	ax
@@ -395,4 +395,5 @@ media_2880:
 	setloc	0EFC7h
 int_1E:
 	db	0AFh, 02h, 25h, 02h, 24h, 1Bh, 0FFh, 50h, 0F6h, 0Fh, 08h
+;Hmm, this was commented in floppy2
 ;	db	4Fh, 0C0h

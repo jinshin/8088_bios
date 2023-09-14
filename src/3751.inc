@@ -2,6 +2,7 @@
 ; emulation via ch375 chip
 ; parts taken from floppy1.inc and floppy2.inc for compatibility
 ; Made by Serhii Liubshin, 2023
+; First part, comtains mostly CH375 interfacing procs
 
 cpu		8086
 
@@ -47,7 +48,7 @@ int_13_flags_l	equ	int_13_flags
 	
 biosdseg	equ	0040h
 
-;We use reserved area
+;We use some reserved BDA bytes
 ;to store media info
 ;I've checked - it's unused in Book8088
 fd_enabled	equ	0ACh
@@ -106,6 +107,14 @@ get_status:
 
 
 ;Do a full reset
+
+;Mode:
+;00H = Disabled device mode, 01H = Enabled device mode using external firmware mode,
+;02H = Enabled device mode using internal firmware mode
+;04H = Disabled host mode, 05H = Enabled host mode,
+;06H = Enabled host mode with automatic generation of SOF packets, 07H = Enabled host mode and reset USB bus
+;Output: Operation status (CMD_RET_SUCCESS or CMD_RET_ABORT, other values indicate that the operation is not completed) 
+
 reset_controller:
 	mov	al,cmd_set_mode
 	call	write_cmd
@@ -126,6 +135,7 @@ reset_controller:
 	stc
 	ret
 .next2:
+;You need to do that, or init is not considered complete by CH375
 	mov	cx,4
 .rep1:
 	mov	al,cmd_disk_size
@@ -140,7 +150,7 @@ reset_controller:
 	stc
 	ret
 .next3:
-
+;You need to do that, or init is not considered complete by CH375
 	mov	cx,4
 .rep2:
 	mov	al,cmd_disk_ready
@@ -158,6 +168,7 @@ reset_controller:
 	clc
 	ret
 
+;Write sectors to USB
 write_sectors:
 	mov	dx,ax
 	mov	si,[bp+int_13_bx]
@@ -177,7 +188,7 @@ write_sectors:
 ;start
 	mov	al,cmd_write_disk
 	call	write_cmd
-;2879 is maximum
+;LBA
 	mov	ax,dx
 	call	write_data
 	mov	al,ah
@@ -227,6 +238,7 @@ write_sectors:
 	
 	ret
 
+;Read sectors from USB
 read_sectors:
 	mov	bx,ax
 	mov	di,[bp+int_13_bx]
@@ -246,7 +258,7 @@ read_sectors:
 ;start
 	mov	al,cmd_read_disk
 	call	write_cmd
-;2879 is maximum
+;65535 sectors are our maximum
 	mov	al,bl
 	call	write_data
 	mov	al,bh
@@ -296,6 +308,7 @@ read_sectors:
 	ret
 
 ;Read boot sector, enable emulation if something resembling floppy image is there
+;We store only needed stuff as we don't have a memory buffer, it's ROM
 read_boot:
 	mov	al,cmd_read_disk
 	call	write_cmd
@@ -342,7 +355,7 @@ read_boot:
 	in	al,dx
 	in	al,dx
 	in	al,dx
-;get
+;get sectors
 	in	al,dx
 	mov	[fd_sectors],al
 ;skip high part
@@ -364,7 +377,7 @@ dumbloop:
 	loop	dumbloop
 exit_dumb:
 
-;sanity check
+;quick sanity check
 	mov	al,[fd_heads]
 	cmp	al,0
 	je	bad_exit
@@ -382,7 +395,7 @@ bad_exit:
 	stc
 	ret
 
-
+;delays, most probably not even close to correct
 short_delay:
 	nop
 	nop
@@ -424,6 +437,7 @@ read_data:
 
 
 ;Taken from CH37X-BIOS
+;Wait for interrupt
 wait_interrupt:
 	push	dx
 	push	cx

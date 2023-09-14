@@ -267,7 +267,11 @@ mouse_data	equ	28h	; 8 bytes - mouse data buffer
 %endif ; BIOS_SETUP
 %include	"delay.inc"		; delay function
 %include	"time1.inc"		; time services
+%ifndef	CH375_FLOPPY
 %include	"floppy1.inc"		; floppy services
+%else
+%include	"3751.inc"		; CH375 floppy emulation
+%endif
 %ifdef AT_KEYBOARD
 %include	"at_kbc.inc"		; keyboard controller functions
 %endif ; AT_KEYBOARD
@@ -1305,7 +1309,11 @@ config_table:
 
 %include	"serial2.inc"		; INT 14 - BIOS Serial Communications
 %include	"keyboard.inc"		; INT 16, INT 09
+%ifndef CH375_FLOPPY
 %include	"floppy2.inc"		; INT 13
+%else
+%include	"3752.inc"		; CH375 floppy emulation
+%endif
 %include	"printer2.inc"		; INT 17
 %include	"video.inc"		; INT 10
 

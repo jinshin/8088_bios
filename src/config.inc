@@ -23,6 +23,7 @@
 ;=========================================================================
 
 %substr	BYEAR		__UTC_DATE__	3,2
+%substr	FULLYEAR	__UTC_DATE__	1,4
 %substr	BMONTH		__UTC_DATE__	6,2
 %substr	BDAY		__UTC_DATE__	9,2
 

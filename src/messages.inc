@@ -38,8 +38,8 @@ msg_copyright	db	0Dh, 0Ah
 		db	" BIOS, Version "
 		db	VERSION
 		db	". "
-		db	"Copyright (C) 2010 - 2023 Sergey Kiselev", 0Dh, 0Ah
-		db	"Parts (C) 2013 Serhii Liubshin", 0Dh, 0Ah
+		db	"Copyright (C) 2010 - ",FULLYEAR," Sergey Kiselev", 0Dh, 0Ah
+		db	"Parts (C) ",FULLYEAR," Serhii Liubshin. Built ",__UTC_DATE__," ",__UTC_TIME__," UTC", 0Dh, 0Ah
 		db	"Distributed under the terms of "
 		db	"the GNU General Public License", 0Dh, 0Ah
 msg_crlf	db      0Dh, 0Ah, 00h

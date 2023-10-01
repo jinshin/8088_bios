@@ -27,7 +27,7 @@
 %substr	BDAY		__UTC_DATE__	9,2
 
 %strcat DATE		BMONTH,'/',BDAY,'/',BYEAR	; BIOS release date MM/DD/YY
-%define VERSION		'1.0.0'		; BIOS version
+%define VERSION		'1.0.3'		; BIOS version
 
 ; Machine type is defined in the Makefile
 ;%define MACHINE_XI8088			; Xi 8088
@@ -82,6 +82,7 @@
 %define NO_FLOPPY	1		; Book8088 has no floppy drives
 %define CH375_FLOPPY	1		; Emulate floppy if flash drive inserted
 %define ALT_SOUND	1		; Alternate sound, choosen by playing notes on online piano
+%define PIT_DELAY	1
 %endif ; MACHINE_BOOK8088
 
 ; Settings for IBM PC/XT

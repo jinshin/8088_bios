@@ -56,14 +56,14 @@ sound:
         out     ppi_pb_reg,al		; write the new value
 
 .silent:
-	mov	cx,2000h		; was 3000h
+	mov	cx,3000h		; was 3000h
 	call	delay_15us		; delay while note is playing
 
 	in	al,ppi_pb_reg		; read current value of PORT B
 	and	al,0FCh			; turn off the speaker
         out     ppi_pb_reg,al		; write the new value
 
-        mov     cx,0050h		; was 100h
+        mov     cx,0100h		; was 100h
 	call	delay_15us		; delay after the note
         
         jmp     .loop			; play the next note

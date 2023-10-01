@@ -39,7 +39,7 @@ msg_copyright	db	0Dh, 0Ah
 		db	VERSION
 		db	". "
 		db	"Copyright (C) 2010 - 2023 Sergey Kiselev", 0Dh, 0Ah
-		db	"Parts (C) 2013 Serhii Liubshin", 0Dh, 0Ah
+		db	"Parts (C) 2023 Serhii Liubshin", 0Dh, 0Ah
 		db	"Distributed under the terms of "
 		db	"the GNU General Public License", 0Dh, 0Ah
 msg_crlf	db      0Dh, 0Ah, 00h

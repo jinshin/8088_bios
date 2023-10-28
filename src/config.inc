@@ -28,7 +28,7 @@
 %substr	BDAY		__UTC_DATE__	9,2
 
 %strcat DATE		BMONTH,'/',BDAY,'/',BYEAR	; BIOS release date MM/DD/YY
-%define VERSION		'1.0.3'		; BIOS version
+%define VERSION		'1.0.4'		; BIOS version
 
 ; Machine type is defined in the Makefile
 ;%define MACHINE_XI8088			; Xi 8088

@@ -1046,12 +1046,8 @@ low_ram_ok:
 	shl	al,cl		; move video mode to bits 5-4
 	or	[equipment_list],al
 %endif ; MACHINE_FE2010A or MACHINE_XT
-%ifdef MACHINE_BOOK8088
-	push	dx
-	push	ax
-	push	bx
-	push	cx
 
+%ifdef MACHINE_BOOK8088
 	mov	bh,66h	;test value
 	mov	dx,3D4h
 	mov	al,0Fh
@@ -1064,7 +1060,7 @@ low_ram_ok:
 	out	dx,al
 
 	push	cx	;wait a bit
-	mov	cx,5
+	mov	cx,3
 .wait:
 	loop	.wait
 	pop	cx
@@ -1100,10 +1096,6 @@ low_ram_ok:
 	call	beep	
 
 .exit_det:
-	pop	cx
-	pop	bx
-	pop	ax
-	pop	dx
 %endif ; MACHINE_BOOK8088
 ; 
 ;-------------------------------------------------------------------------

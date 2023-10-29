@@ -1466,3 +1466,5 @@ vid_gfx_pos_to_offset:
 	add	ax,bx			; AX = row * video_columns * 4 + column
 	pop	bx
 	ret
+
+

@@ -583,11 +583,11 @@ print_mouse:
 %endif ; PS2_MOUSE
 
 ;=========================================================================
-; detect CGA videocard presence
+; detect videocard presence with CRTC
+; DX: 3B4h for monochrome, 3D4h for CGA
 ;-------------------------------------------------------------------------
-detect_cga:
+check_crtc:
 	mov	bh,66h	;test value
-	mov	dx,3D4h
 	mov	al,0Fh
 	out	dx,al
 	inc 	dx	;3D5h
@@ -611,6 +611,20 @@ detect_cga:
 
 	cmp	ah,bh	;compare test value to cursor pos
 	ret
+
+;=========================================================================
+; detect CGA (and above) videocard
+;-------------------------------------------------------------------------
+detect_cga:
+	mov	dx,3D4h
+	jmp	check_crtc
+
+;=========================================================================
+; detect Mono videocard
+;-------------------------------------------------------------------------
+detect_mono:
+	mov	dx,3B4h
+	jmp	check_crtc
 
 ;=========================================================================
 ; Video card absent POST beep code
@@ -1101,11 +1115,14 @@ low_ram_ok:
 
 %ifdef MACHINE_BOOK8088
 	call	detect_cga
-	jnz	.nope
-	or	byte [equipment_list],equip_color_80 ; built-in CGA
+	jnz	.nocga
+	or	byte [equipment_list],equip_color_80 ; CGA adapter
 	jmp	.continue_init
-	
-.nope:
+.nocga:
+	call	detect_mono
+	jnz	.nomono
+	or	byte [equipment_list],equip_mono ; Monochrome adapter
+.nomono:
         call	no_video_post
 ;install dummy int 10H handler for true headless mode
 	cld

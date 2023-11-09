@@ -38,11 +38,14 @@ msg_copyright	db	0Dh, 0Ah
 %ifdef MACHINE_XT
 		db	"XT 8088"
 %endif ; MACHINE_XT
+%ifdef MACHINE_MARTYPC
+		db	"MartyPC"
+%endif ; MACHINE_MARTYPC
 		db	" BIOS, Version "
 		db	VERSION
 		db	". "
 		db	"Copyright (C) 2010 - ",FULLYEAR," Sergey Kiselev", 0Dh, 0Ah
-%ifdef MACHINE_BOOK8088
+%ifdef MACHINE_BOOK8088 or MACHINE_MARTYPC
 		db	"Parts (C) ",FULLYEAR," Serhii Liubshin. Built ",__UTC_DATE__," ",__UTC_TIME__," UTC", 0Dh, 0Ah
 %endif
 		db	"Distributed under the terms of "

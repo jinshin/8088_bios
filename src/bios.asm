@@ -647,6 +647,24 @@ no_video_post:
 	call	beep
 	ret
 
+;=========================================================================
+; Memory error POST beep code
+;-------------------------------------------------------------------------
+memory_error_post:
+;One long three short is actual old memory error code
+;But it's for video card now
+;I've seen three short beeps in Award BIOS refs
+	mov	bl,2
+	call	beep
+	mov	cx,6666			; 0.1 second delay
+	call	delay_15us
+	mov	bl,2
+	call	beep
+	mov	cx,6666			; 0.1 second delay
+	call	delay_15us
+	mov	bl,2
+	call	beep
+	ret
 
 ;=========================================================================	
 ; interrupt_table - offsets only (BIOS segment is always 0F000h)
@@ -849,7 +867,7 @@ cpu_ok:
 	mov	al,e_init_dmac
 	out	post_reg,al
  	out	0Dh,al			; DMA Master Clear register - reset DMA
-%ifdef MACHINE_XT
+%ifdef MACHINE_XT or MACHINE_MARTYPC
 					; set up DRAM refresh on DMA channel 0
 	mov	al,0ffh			; 16-bit memory refresh counter = 0FFFFh
 	out	dmac_ch0_count_reg,al	; write low byte
@@ -1113,7 +1131,29 @@ low_ram_ok:
 	or	[equipment_list],al
 %endif ; MACHINE_FE2010A or MACHINE_XT
 
-%ifdef MACHINE_BOOK8088
+; 
+;-------------------------------------------------------------------------
+; look for video BIOS, initialize it if present
+
+	mov	al,e_vid_bios_scan
+	out	post_reg,al
+	mov	dx,0C000h
+	mov	bx,0C800h
+	call	extension_scan
+	cmp	word [67h],0
+	jz	.no_video_bios
+	mov	al,e_vid_bios_init
+	out	post_reg,al
+	call	far [67h]
+	mov	ax,biosdseg		; DS = BIOS data area
+	mov	ds,ax
+; set video bits to 00 - EGA or later (Video adapter with BIOS)		
+;	and	word [equipment_list],~equip_video
+	jmp	.video_initialized
+
+.no_video_bios:
+
+%ifdef MACHINE_BOOK8088 or MACHINE_MARTYPC
 	call	detect_cga
 	jnz	.nocga
 	or	byte [equipment_list],equip_color_80 ; CGA adapter
@@ -1139,27 +1179,7 @@ low_ram_ok:
 
 .continue_init:
 %endif ; MACHINE_BOOK8088
-; 
-;-------------------------------------------------------------------------
-; look for video BIOS, initialize it if present
 
-	mov	al,e_vid_bios_scan
-	out	post_reg,al
-	mov	dx,0C000h
-	mov	bx,0C800h
-	call	extension_scan
-	cmp	word [67h],0
-	jz	.no_video_bios
-	mov	al,e_vid_bios_init
-	out	post_reg,al
-	call	far [67h]
-	mov	ax,biosdseg		; DS = BIOS data area
-	mov	ds,ax
-; set video bits to 00 - EGA or later (Video adapter with BIOS)		
-;	and	word [equipment_list],~equip_video
-	jmp	.video_initialized
-
-.no_video_bios:
 	mov	al,e_vid_no_bios
 	out	post_reg,al
 	mov	ah,byte [equipment_list] ; get equipment - low byte
@@ -1738,6 +1758,8 @@ test_ram:
 	mov	al,e_ram_fail		; RAM scan failed
 	out	post_reg,al
 	pop	ax
+
+	call	memory_error_post
 
 .test_done:
 	ret

@@ -3,6 +3,8 @@
 Open source BIOS for [Micro 8088], [NuXT][] ([Git repo][NuXT-git]),
 and [Xi 8088] systems
 
+This fork is aimed at [Book 8088]
+
 [Micro 8088]: https://github.com/skiselev/micro_8088
 [NuXT]: https://www.vogonswiki.com/index.php/NuXT
 [NuXT-git]: https://github.com/monotech/NuXT

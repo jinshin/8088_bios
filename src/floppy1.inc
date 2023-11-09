@@ -306,13 +306,11 @@ int_13_fn08:
 	je	.set_1200
 	cmp	al,type_1440
 	je	.set_1440
-
 .set_2880:
 	mov	al,fdc_m_try_2880	; try 2.88M in 2.88M drive
 	lea	di,[media_2880]		; only 2.88M uses 1 Mbps rate
 	mov	cx,4F24h		; 2.88M - 80 cylinders, 36 sectors
 	jmp	.set_media_type
-
 .set_360:
 	mov	al,fdc_m_360in360
 	lea	di,[media_360_in_360]

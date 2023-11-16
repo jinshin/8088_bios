@@ -1162,6 +1162,7 @@ low_ram_ok:
 	call	detect_mono
 	jnz	.nomono
 	or	byte [equipment_list],equip_mono ; Monochrome adapter
+	jmp	.continue_init
 .nomono:
         call	no_video_post
 ;install dummy int 10H handler for true headless mode

@@ -1,4 +1,5 @@
-binaries/CMakeCache.txt
-binaries/CMakeFiles
-binaries/cmake_install.cmake
-binaries/Makefile
+binaries/*
+src/*.bin
+src/*.lst
+src/*.zip
+src/*.rom

@@ -272,6 +272,9 @@ mouse_data	equ	28h	; 8 bytes - mouse data buffer
 %else
 %include	"3751.inc"		; CH375 floppy emulation
 %endif
+%ifdef XT_CF
+%include	"xtcf.inc"
+%endif
 %ifdef AT_KEYBOARD
 %include	"at_kbc.inc"		; keyboard controller functions
 %endif ; AT_KEYBOARD
@@ -394,6 +397,36 @@ print:
 	push	ds
 	push	cs
 	pop	ds
+	cld
+.1:
+	lodsb
+	or	al,al
+	jz	.exit
+	mov	ah,0Eh
+	mov	bl,0Fh
+	int	10h
+	jmp	.1
+.exit:
+	pop	ds
+	pop	si
+	pop	bx
+	pop	ax
+	popf
+	ret
+
+;=========================================================================
+; printds - print ASCIIZ string to the console
+; Input:
+;	DS:SI - pointer to string to print
+; Output:
+;	none
+;-------------------------------------------------------------------------
+printds:
+	pushf
+	push	ax
+	push	bx
+	push	si
+	push	ds
 	cld
 .1:
 	lodsb
@@ -1240,6 +1273,10 @@ low_ram_ok:
 					; findings
 	call	detect_floppy		; detect floppy drive types
 	call	print_floppy		; print floppy drive types
+
+%ifdef XT_CF
+        call	detect_xtcf
+%endif
 
 	call	detect_ram		; detect RAM, get RAM size in AX
 	call	test_ram		; test RAM, get tested RAM size in AX

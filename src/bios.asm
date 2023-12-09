@@ -1299,6 +1299,10 @@ low_ram_ok:
 	out	fe_config_reg,al
 %endif ; MACHINE_FE2010A
 
+%ifdef XT_CF
+        call	xtcf_reserve_ram
+%endif
+
 %ifdef EBDA_SIZE
 	call	reserve_ebda		; reserve EBDA if needed
 

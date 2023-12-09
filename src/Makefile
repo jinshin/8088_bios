@@ -35,7 +35,7 @@ XEBEC=../xebec/xebec.bin
 
 SOURCES=bios.asm xtcf.inc macro.inc at_kbc.inc config.inc errno.inc flash.inc floppy1.inc floppy2.inc 3751.inc 3752.inc keyboard.inc misc.inc printer1.inc printer2.inc ps2aux.inc scancode.inc serial1.inc serial2.inc setup.inc sound.inc time1.inc time2.inc video.inc cpu.inc messages.inc inttrace.inc rtc.inc fnt00-7F.inc fnt80-FF.inc
 
-IMAGES=bios-micro8088-noide.rom bios-micro8088-xtide.rom bios-sergey-xt-noide.rom bios-sergey-xt-xtide.rom bios-xi8088-noide.rom bios-xi8088-xtide.rom bios-book8088-xtide.rom bios-book8088-xtide-v20.rom bios-xt.bin bios-martypc.bin
+IMAGES=bios-test.rom bios-micro8088-noide.rom bios-micro8088-xtide.rom bios-sergey-xt-noide.rom bios-sergey-xt-xtide.rom bios-xi8088-noide.rom bios-xi8088-xtide.rom bios-book8088-xtide.rom bios-book8088-xtide-v20.rom bios-xt.bin bios-martypc.bin
 
 FLASH_IMAGE=bios-micro8088-xtide.rom
 
@@ -55,6 +55,9 @@ bios-xt.bin: $(SOURCES)
 
 bios-martypc.bin: $(SOURCES)
 	nasm -DMACHINE_MARTYPC -O9 -f bin -o bios-martypc.bin -l bios-martypc.lst bios.asm
+
+bios-test.bin: $(SOURCES)
+	nasm -DMACHINE_TEST -DXTIDE -O9 -f bin -o bios-test.bin -l bios-test.lst bios.asm
 
 bios-micro8088-noide.rom: bios-micro8088.bin
 	dd if=/dev/zero ibs=1k count=40 | LANG=C tr "\000" "\377" > bios-micro8088-noide.rom
@@ -98,7 +101,7 @@ bios-book8088-xtide.rom: bios-book8088.bin $(XTIDE_300_FULL)
 	# We have 64K (128 pages) BIOS chip
 	$(eval GAPSIZE=$(shell awk -v SZ1=$(BIOSSIZE) -v SZ2=$(XTIDESIZE1) -v SZ3=$(XTIDESIZE2) 'BEGIN { print 128-SZ1-SZ2-SZ3; }'))
 	@echo "GAPSIZE: $(GAPSIZE)"
-	cat $(XTIDE_300_V20_FULL) >> $@
+	cat $(XTIDE_300_V20_FULL) > $@
 	cat $(XTIDE_300_FULL) >> $@
 	# Fill gap to the main BIOS, use 512 blocks corresponding to BIOS page size
 	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" >> $@
@@ -113,14 +116,22 @@ bios-martypc.rom: bios-martypc.bin $(XEBEC)
 	# We have 64K (128 pages) BIOS chip
 	$(eval GAPSIZE=$(shell awk -v SZ1=$(BIOSSIZE) -v SZ2=$(XEBECSIZE) 'BEGIN { print 128-SZ1-SZ2; }'))
 	@echo "GAPSIZE: $(GAPSIZE)"
-	cat $(XEBEC) >> $@
+	cat $(XEBEC) > $@
 	# Fill gap to the main BIOS, use 512 blocks corresponding to BIOS page size
 	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" >> $@
 	cat $(MARTYPC) >> $@
 
+TEST=bios-test.bin
+
+bios-test.rom: bios-test.bin
+	$(eval BIOSSIZE=$(shell du -B 512 --apparent-size $(TEST) | awk '{print $$1;}'))
+	$(eval GAPSIZE=$(shell awk -v SZ1=$(BIOSSIZE) 'BEGIN { print 128-SZ1; }'))
+	@echo "GAPSIZE: $(GAPSIZE)"
+	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" > $@
+	cat $(TEST) >> $@
 
 clean:
-	rm -f bios-martypc.rom bios-micro8088.lst bios-xi8088.lst bios-book8088.lst bios-xt.lst bios-micro8088.bin bios-xi8088.bin bios-book8088.bin bios-xt.bin bios-martypc.bin bios-martypc.lst $(IMAGES)
+	rm -f bios-test.rom bios-martypc.rom bios-micro8088.lst bios-xi8088.lst bios-book8088.lst bios-xt.lst bios-micro8088.bin bios-xi8088.bin bios-book8088.bin bios-xt.bin bios-martypc.bin bios-martypc.lst $(IMAGES)
 
 flash-micro8088:
 	minipro -p $(FLASH_ROM) -w bios-micro8088-xtide.rom

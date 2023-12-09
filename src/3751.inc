@@ -55,7 +55,7 @@ fd_enabled	equ	0ACh
 fd_media	equ	0ADh
 fd_heads	equ	0AEh
 fd_sectors	equ	0AFh
-fd_totalsectors	equ	0B0h
+;fd_totalsectors	equ	0B0h
 
 %define	cmd_get_status	22h
 %define	cmd_disk_unlock	23h
@@ -350,7 +350,9 @@ read_boot:
 	mov	ah,al
 	in	al,dx
 	xchg	al,ah
-	mov	[fd_totalsectors],ax
+
+;	mov	[fd_totalsectors],ax
+
 ;skip to sectors per track/head
 	in	al,dx
 	in	al,dx

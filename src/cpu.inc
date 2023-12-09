@@ -24,6 +24,8 @@
 
 flags_tf	equ	0100h		; TF flag - enables single-step
 
+cpu_type	equ	15h
+
 ;=========================================================================
 ; detect_cpu - detect and print CPU type
 ; Note:
@@ -104,6 +106,8 @@ detect_cpu:
 	jmp	.cpu_freq
 
 .nec_v20:
+;We need this to make XT-IDE routine faster
+	mov	byte [cpu_type],1
 	mov	si,msg_cpu_nec_v20
 	call	print
 

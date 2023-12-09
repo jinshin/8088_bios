@@ -31,10 +31,13 @@
 
 int_13:
 ;only first floppy
-	test	dl,dl
-	jnz	@exit
-
 	sti
+	test	dl,dl
+	jz	.go_floppy
+%ifdef XT_CF
+	jmp	xtcf_int_13
+%endif
+.go_floppy:
 	push	ax
 	push	bx
 	push	cx

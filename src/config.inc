@@ -83,7 +83,7 @@
 %define RAM_TEST_BLOCK	16384		; block size for RAM test
 %define NO_FLOPPY	1		; Book8088 has no floppy drives
 %define CH375_FLOPPY	1		; Emulate floppy if flash drive inserted
-%define XT_CF		1		; Detect Compact Flash card
+;%define XT_CF		1		; Detect Compact Flash card
 %define ALT_SOUND	1		; Alternate sound, choosen by playing notes on online piano
 %define PIT_DELAY	1
 %endif ; MACHINE_BOOK8088
@@ -98,12 +98,15 @@
 %define MIN_RAM_SIZE	32		; At least 32 KiB to boot the system
 %define MAX_RAM_SIZE	640		; Scan this much memory during POST
 %define RAM_TEST_BLOCK	16384		; block size for RAM test
-%define EBDA_SIZE	1		; 1KB reserved for EBDA
+;%define BOOT_SOUND	1		; Now it plays floppy seek and beep sound
 %define NO_FLOPPY	1		; Book8088 has no floppy drives
 %define CH375_FLOPPY	1		; Emulate floppy if flash drive inserted
 %define XT_CF		1		; Detect Compact Flash card
+;%define XT_CF_FULL	1		; INT 13h for XT-IDE tryouts
+%define XTIDE		1		; For PCem
 %define ALT_SOUND	1		; Alternate sound, choosen by playing notes on online piano
 %define PIT_DELAY	1
+;%define EBDA_SIZE	1		; 1KB reserved for EBDA
 %endif 
 
 ; Settings for MartyPC

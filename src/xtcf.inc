@@ -62,58 +62,12 @@ cf_cylinders	equ	0B0h  ;Word
 cf_heads	equ	0B2h  ;Byte
 cf_sectors	equ	0B3h  ;Byte
 
-xtcf_reserve_ram:
-	cld
-	push	ds
-	push	es
-	
-        mov	ax,biosdseg
-	mov	ds,ax
-	
-	mov	al,[hdd_count]
-	test	al,al
-	jz	.exit
-
-	mov	ax,[memory_size]
-	dec	ax
-	mov	[memory_size],ax
-	mov	[hdd_segment],ax
-
-	mov	es,ax
-;offset for int 41h, so far 0
-	xor	di,di
-
-	mov	ax,[cf_cylinders]
-	stosw
-	mov	al,[cf_heads]
-	stosb
-	xor	ax,ax
-	stosw
-	stosw
-	;ECC data burst length?
-	stosb
-	;Control byte?
-	stosb
-
-	mov	bx,es
-	
-;Create INT 41h pointer with HDD table	
-	xor	ax,ax
-	mov	es,ax
-	
-	mov	di,41h*4
-;offset for int 41h, so far 0
-	xor	ax,ax
-	stosw
-	mov	ax,bx
-	stosw	
-
-.exit:
-	pop	es
-	pop	ds
-	ret
-
+;If i ever get to it
+%ifdef XT_IDE_FULL
 %define UNROLL	8
+%else
+%define UNROLL	1
+%endif
 
 ; Read data from port
 ; ES:DI - dest buffer
@@ -133,7 +87,7 @@ xtide_read_sector:
 	jmp	.exit
 
 .j8088:
-
+	mov	bh,8
 	mov	cx,256/UNROLL
 .read_loop:
 
@@ -144,17 +98,26 @@ xtide_read_sector:
 	stosw
 %else
 
-        in	al,dx
-	mov	ah,al
-	xor	dx,8
+;	16 bit mem io
+
+;       in	al,dx
+;	mov	ah,al
+;	xor	dl,bh
+;	in	al,dx
+;	xchg	ah,al
+;	xor	dl,bh
+;	stosw
+
 	in	al,dx
-	xchg	ah,al
-	xor	dx,8
-	stosw
+	stosb
+	xor	dl,bh
+	in	al,dx
+	stosb
+	xor	dl,bh	
+
 %endif
 
 %endrep
-
 	loop	.read_loop
 .exit:
 	ret
@@ -163,6 +126,7 @@ xtide_read_sector:
 ; DS:SI - source buffer
 ; BL - CPU type
 ; OsDev recommends make it slow
+
 xtide_write_sector:
 	cld
 	mov	dx,PORT
@@ -177,7 +141,7 @@ xtide_write_sector:
 	jmp	.exit
 
 .j8088:
-
+	mov	bh,8
 	mov	cx,256/UNROLL
 
 .write_loop:
@@ -190,9 +154,9 @@ xtide_write_sector:
 %else
 	lodsw
 	xchg	ah,al
-	xor	dx,8
+	xor	dl,bh
 	out	dx,al
-	xor	dx,8
+	xor	dl,bh
 	mov	al,ah
 	out	dx,al
 %endif
@@ -245,6 +209,7 @@ detect_xtcf:
 	pop	es
 	pop	ds
 
+%ifdef XT_CF_FULL
 	xor	si,si
 	lodsw
 	lodsw
@@ -265,12 +230,10 @@ detect_xtcf:
 	mov	al,1
 	mov	es:[hdd_count],al
 
-;Eat RAM
-		
-
 .not_good:	
 	test	ax,ax	;Will be zero if something wrong
 	jz	.exit_error	
+%endif
 
 ;Get drive name
 
@@ -462,8 +425,62 @@ wait_poll:
 	clc
 	ret
 
-space	db " ",0
+;==================== Cut here ====================================
 
+%ifdef XT_CF_FULL
+
+xtcf_init:
+	cld
+	push	ds
+	push	es
+	
+        mov	ax,biosdseg
+	mov	ds,ax
+	
+	mov	al,[hdd_count]
+	test	al,al
+	jz	.exit
+
+	mov	ax,[memory_size]
+	dec	ax
+	mov	[memory_size],ax
+	mov	[hdd_segment],ax
+
+	mov	es,ax
+;offset for int 41h, so far 0
+	xor	di,di
+
+	mov	ax,[cf_cylinders]
+	stosw
+	mov	al,[cf_heads]
+	stosb
+	xor	ax,ax
+	stosw
+	stosw
+	;ECC data burst length?
+	stosb
+	;Control byte?
+	stosb
+
+	mov	bx,es
+	
+;Create INT 41h pointer with HDD table	
+	xor	ax,ax
+	mov	es,ax
+	
+	mov	di,41h*4
+;offset for int 41h, so far 0
+	xor	ax,ax
+	stosw
+	mov	ax,bx
+	stosw	
+
+.exit:
+	pop	es
+	pop	ds
+	ret
+
+space	db " ",0
 ;==========================================
 ;CF card int 13h handler
 ;
@@ -500,27 +517,49 @@ xtcf_int_13:
 	mov	cx,[bp+int_13_cx]
 	mov	dx,[bp+int_13_dx]
 
+;Reset
 	cmp	ah,00
 	je	hdd_13_reset
 	cmp	ah,0Dh
 	je	hdd_13_reset
-
+;Get last error
 	cmp	ah,01
 	je	hdd_13_geterror
-
+;Read
 	cmp	ah,02
 	je	hdd_13_read
-
+;Write
 	cmp	ah,03
 	je	hdd_13_write
-
-
+;Verify
+	cmp	ah,03
+	je	hdd_13_verify
+;Get drive type
 	cmp	ah,08
 	je	hdd_13_drivetype
+;Init drive table
 	cmp	ah,09
 	je	hdd_13_inittable
 
+;Init drive table
+	cmp	ah,41h
+	je	hdd_13_checkext
+
+	push	si
+	call	print_hex
+	mov	si,space
+	call 	print
+	pop	si
+
+	clc
+	xor	ah,ah		
+
 hdd_13_exit:
+
+	mov	bx,biosdseg
+	mov	ds,bx
+	mov	[hdd_last_error],ah
+
 	mov	byte [bp+int_13_ah],ah	; pass AH to the caller
 	mov	ax,201h			; set IF and CF
 	jc	.set_error		; there is an error
@@ -541,9 +580,13 @@ hdd_13_exit:
 
 hdd_exit: 
 	iret
-
+;=======================================
 ;Reset device
+;
 hdd_13_reset:
+	xor	ax,ax
+	jmp	hdd_13_exit	
+
 	mov	dx,CTREG
 	mov	al,4
 	out	dx,al
@@ -569,8 +612,9 @@ hdd_13_reset:
 %endif
 .next2:
 	jmp	hdd_13_exit
-
+;=======================================
 ;Get status
+;
 hdd_13_geterror:
 	mov	al,[hdd_last_error]
 	clc
@@ -579,6 +623,9 @@ hdd_13_geterror:
 ;=======================================
 ; Read
 ;
+
+rerr	db	"RE ",0
+
 hdd_13_read:
  
 	test	al,al
@@ -628,6 +675,11 @@ hdd_13_read:
 	jmp	hdd_13_exit
 
 .read_exit_error:
+
+	push	si
+	mov	si,rerr
+	call	print
+	pop	si
 
 	mov	byte [hdd_last_error],1
 	stc
@@ -692,12 +744,38 @@ hdd_13_write:
 	stc
 	jmp	hdd_13_exit
 
+;======================================
+; Verify
+;
+hdd_13_verify:
+	xor	ah,ah
+	clc
+	jmp	int_13_exit	
+
+;======================================
+; Format
+;
+hdd_13_format:
+	xor	ah,ah
+	clc
+	jmp	int_13_exit	
+
+;======================================
+; Check extensions
+;
+hdd_13_checkext:
+	mov	ah,1
+	stc
+	jmp	int_13_exit
+
 
 ;======================================
 ; Get drive parameters
 ;
 hdd_13_drivetype:
 	mov	cx,[cf_cylinders]
+;i dunno, but all bioses return -2, not -1 tracks for some reason
+	dec	cx
 	dec	cx
 	mov	al,[cf_sectors]
 	xchg	ch,cl
@@ -730,6 +808,11 @@ hdd_13_drivetype:
 ;	mov	si,space
 ;	call	print
 
+	push	cx
+	xor	cx,cx
+.xx:	loop	.xx
+	pop	cx
+
 	clc
 	jmp	hdd_13_exit
 
@@ -737,6 +820,8 @@ hdd_13_drivetype:
 hdd_13_inittable:         
 
         jmp	hdd_13_exit
+
+%endif
 
 ;	   00  no error
 ;	   01  bad command passed to driver
@@ -764,3 +849,4 @@ hdd_13_inittable:
 ;	   CC  fixed disk write fault on selected drive
 ;	   E0  fixed disk status error/Error reg = 0
 ;	   FF  sense operation failed
+

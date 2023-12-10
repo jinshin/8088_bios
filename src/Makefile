@@ -57,7 +57,7 @@ bios-martypc.bin: $(SOURCES)
 	nasm -DMACHINE_MARTYPC -O9 -f bin -o bios-martypc.bin -l bios-martypc.lst bios.asm
 
 bios-test.bin: $(SOURCES)
-	nasm -DMACHINE_TEST -DXTIDE -O9 -f bin -o bios-test.bin -l bios-test.lst bios.asm
+	nasm -DMACHINE_TEST -O9 -f bin -o bios-test.bin -l bios-test.lst bios.asm
 
 bios-micro8088-noide.rom: bios-micro8088.bin
 	dd if=/dev/zero ibs=1k count=40 | LANG=C tr "\000" "\377" > bios-micro8088-noide.rom

@@ -34,8 +34,10 @@ int_13:
 	sti
 	test	dl,dl
 	jz	.go_floppy
-%ifdef XT_CF
+%ifdef XT_CF_FULL
 	jmp	xtcf_int_13
+%else
+        jmp	@exit
 %endif
 .go_floppy:
 	push	ax

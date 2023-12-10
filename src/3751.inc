@@ -66,8 +66,9 @@ fd_sectors	equ	0AFh
 %define	cmd_read_cont	55h
 %define	cmd_write_disk	56h
 %define	cmd_write_cont	57h
-%define	cmd_disk_sense	59h
+;%define	cmd_disk_sense	59h
 %define	cmd_disk_sense	5Ah
+%define cmd_disk_inquiry 58h 
 
 %define	cmd_read_buffer	28h
 %define	cmd_write_buffer 2Bh		

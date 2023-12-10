@@ -287,11 +287,8 @@ detect_xtcf:
 
 	ret
 
-msg_cf		db	'Compact Flash drive:        ', 00h
-msg_nocf	db	'Compact Flash drive:        None', 00h
-;msg_ch375	db	'Floppy disk drives:         Drive 0: CH375 USB', 00h
-;msg_nousb	db	'Floppy disk drives:         None', 00h
-
+msg_cf		db	'Compact Flash Drive:        ', 00h
+msg_nocf	db	'Compact Flash Drive:        None', 00h
 
 ;---
 ;Identify drive command
@@ -775,6 +772,7 @@ hdd_13_checkext:
 hdd_13_drivetype:
 	mov	cx,[cf_cylinders]
 ;i dunno, but all bioses return -2, not -1 tracks for some reason
+;i think it's because we add up sectors/heads to that last track to get full sectors
 	dec	cx
 	dec	cx
 	mov	al,[cf_sectors]

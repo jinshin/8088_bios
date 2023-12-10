@@ -309,8 +309,8 @@ detect_floppy:
 	pop	ds
 	ret
 
-msg_ch375	db	'Floppy disk drives:         Drive 0: CH375 USB', 00h
-msg_nousb	db	'Floppy disk drives:         None', 00h
+msg_ch375	db	'Floppy Disk Drives:         Drive 0: CH375 USB', 00h
+msg_nousb	db	'Floppy Disk Drives:         None', 00h
 
 print_floppy:
 	push	ax

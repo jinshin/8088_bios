@@ -130,10 +130,19 @@ msg_setup	db	'Press F1 to run BIOS setup...',0Dh, 0Ah, 0Dh, 0Ah, 00h
 msg_set_welcome	db	0Dh, 0Ah, 'Welcome to the BIOS setup utility', 00h
 msg_set_help	db	0Dh, 0Ah
 		db	'BIOS setup commands:', 0Dh, 0Ah
-		db	'f - Change first floppy drive type', 0Dh, 0Ah
-		db	'g - Change second floppy drive type', 0Dh, 0Ah
-		db	'e - Change BIOS extension ROM scan settings', 0Dh, 0Ah
-		db	'm - Change memory test settings', 0Dh, 0Ah
+		db	'f - Set first floppy drive type', 0Dh, 0Ah
+		db	'g - Set second floppy drive type', 0Dh, 0Ah
+		db	'e - BIOS extension ROM scan settings', 0Dh, 0Ah
+		db	'm - Memory test settings', 0Dh, 0Ah
+
+%ifdef BOOT_SOUND
+		db	'b - Boot sound settings', 0Dh, 0Ah
+%endif
+
+%ifdef MACHINE_BOOK8088
+		db	'u - USB floppy emulation settings', 0Dh, 0Ah
+%endif
+
 %ifdef TURBO_MODE
 		db	'c - Set default CPU clock frequency', 0Dh, 0Ah
 %endif ; TURBO_MODE
@@ -184,6 +193,19 @@ msg_set_ext	db	'Scan F0000-F7FFF area for BIOS extension ROMs (y/n): '
 msg_ext_scan	db	'F0000-F7FFF BIOS ext. scan: ', 00h
 msg_set_mem_tst	db	'Enable memory test (y/n): ', 00h
 msg_mem_test	db	'Memory test:                ', 00h
+%ifdef BOOT_SOUND
+msg_set_bootsnd	db	'Enable boot sound (y/n): ', 00h
+msg_bootsnd	db	'Boot sound:                ', 00h
+%endif
+%ifdef MACHINE_BOOK8088
+msg_set_usbemu  db	'USB floppy emulation will be autoenabled', 0Dh, 0Ah
+		db	'if floppy drive A:(0) type is set to zero', 0Dh, 0Ah
+		db	'and USB flash drive is inserted on boot', 0Dh, 0Ah
+		db	'With this option emulation will be enforced.', 0Dh, 0Ah
+		db	'', 00h
+msg_set		db	'Enable USB floppy emulation (y/n): ', 00h
+msg_usbemu	db	':                ', 00h
+%endif
 %ifdef MACHINE_FE2010A
 msg_set_ws	db	'Fast wait states (y/n, h for help): ', 00h
 msg_ws_help	db	0Dh, 0Ah

@@ -96,6 +96,16 @@ msg_floppy_1200	db	'1.2 MB, 5.25"', 00h
 msg_floppy_720	db	'720 KB, 3.5"', 00h
 msg_floppy_1440	db	'1.44 MB, 3.5"', 00h
 msg_floppy_2880	db	'2.88 MB, 3.5"', 00h
+
+%ifdef CH375_FLOPPY
+msg_floppy_ch375 db	'CH375 USB', 00h
+%endif
+
+%ifdef XT_CF
+msg_cf		db	'Compact Flash Drive:        ', 00h
+msg_nocf	db	'Compact Flash Drive:        None', 00h
+%endif
+
 %ifdef PS2_MOUSE
 msg_mouse	db      'PS/2 Aux Device (Mouse):    ', 00h
 %endif ; PS2_MOUSE
@@ -139,7 +149,7 @@ msg_set_help	db	0Dh, 0Ah
 		db	'b - Boot sound settings', 0Dh, 0Ah
 %endif
 
-%ifdef MACHINE_BOOK8088
+%ifdef CH375_FLOPPY
 		db	'u - USB floppy emulation settings', 0Dh, 0Ah
 %endif
 
@@ -195,16 +205,18 @@ msg_set_mem_tst	db	'Enable memory test (y/n): ', 00h
 msg_mem_test	db	'Memory test:                ', 00h
 %ifdef BOOT_SOUND
 msg_set_bootsnd	db	'Enable boot sound (y/n): ', 00h
-msg_bootsnd	db	'Boot sound:                ', 00h
+msg_bootsnd	db	'Boot sound:                 ', 00h
 %endif
-%ifdef MACHINE_BOOK8088
-msg_set_usbemu  db	'USB floppy emulation will be autoenabled', 0Dh, 0Ah
+%ifdef CH375_FLOPPY
+msg_usbemu_help db	0Dh, 0Ah, 0Dh, 0Ah
+		db	'USB floppy emulation is always autoenabled', 0Dh, 0Ah
 		db	'if floppy drive A:(0) type is set to zero', 0Dh, 0Ah
 		db	'and USB flash drive is inserted on boot', 0Dh, 0Ah
-		db	'With this option emulation will be enforced.', 0Dh, 0Ah
-		db	'', 00h
-msg_set		db	'Enable USB floppy emulation (y/n): ', 00h
-msg_usbemu	db	':                ', 00h
+		db	'This option will enforce it regardless of drive', 0Dh, 0Ah
+		db	'type selection and actual USB flash drive presence.', 
+		db	0Dh, 0Ah, 0Dh, 0Ah, 00h
+msg_set_usbemu	db	'Enforce USB floppy emulation (y/n, h for help): ', 00h
+msg_usbemu	db	'USB floppy enforcement:     ', 00h
 %endif
 %ifdef MACHINE_FE2010A
 msg_set_ws	db	'Fast wait states (y/n, h for help): ', 00h
@@ -228,6 +240,13 @@ msg_saving	db	0Dh, 0Ah, 'Saving configuration to Flash ROM... ', 00h
 msg_save_ok	db	'OK', 0Dh, 0Ah, 00h
 msg_save_error	db	'ERROR', 0Dh, 0Ah, 00h
 %endif ; FLASH_NVRAM
+%ifdef XT_CF
+msg_cannot	db	0Dh, 0Ah, "Boot sector data present, cannot save!", 0Dh, 0Ah, 00h
+msg_saving	db	0Dh, 0Ah, "Saving configuration to boot sector."
+		db	0Dh, 0Ah, "Don't do that often!", 0Dh, 0Ah, 00h 
+msg_save_ok	db	'OK', 0Dh, 0Ah, 00h
+msg_save_error	db	'ERROR', 0Dh, 0Ah, 00h
+%endif
 %endif ; BIOS_SETUP
 tbl_floppy	dw	msg_none
 		dw	msg_floppy_360
@@ -236,4 +255,8 @@ tbl_floppy	dw	msg_none
 		dw	msg_floppy_1440
 		dw	msg_none
 		dw	msg_floppy_2880
+%ifdef CH375_FLOPPY
+		dw	msg_floppy_ch375
+%else
 		dw	msg_none
+%endif

@@ -24,7 +24,8 @@
 
 flags_tf	equ	0100h		; TF flag - enables single-step
 
-cpu_type	equ	15h
+setup_byte	equ	15h
+necv20_cpu	equ	1
 
 ;=========================================================================
 ; detect_cpu - detect and print CPU type
@@ -35,6 +36,14 @@ cpu_type	equ	15h
 detect_cpu:
 	push	ax
 	push	si
+
+;Sorry -----------------------------
+	push	ds
+	mov	ax,biosdseg
+	mov	byte [setup_byte],0
+	pop	ds	
+;-----------------------------------
+
 	mov	al,e_cpu_detect
 	out	post_reg,al
 
@@ -107,7 +116,11 @@ detect_cpu:
 
 .nec_v20:
 ;We need this to make XT-IDE routine faster
-	mov	byte [cpu_type],1
+	push	ds
+	mov	ax,biosdseg
+	mov	byte [setup_byte],necv20_cpu
+	pop	ds
+;-----------------------------------------
 	mov	si,msg_cpu_nec_v20
 	call	print
 

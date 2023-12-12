@@ -23,14 +23,21 @@
 ;
 ;=========================================================================
 
+%ifndef CH375_FLOPPY
 default_floppy	db	type_1440 << 4	; one 1.44 MB floppy drive
 default_equip	db	21h		; CGA 80x25, one floppy drive
+%else
+default_floppy	db	0		; No drives
+default_equip	db	20h		; CGA 80x25, no floppy drive
+%endif
 %ifdef BIOS_SETUP
 default_config_a db	00000000b	; NVRAM BIOS configuration byte A
 ;			||||||`---------; 00 = 4.77 MHz / Turbo off
 ;			|||||`----------; 0 = F0000-F7FFF ROM scan enabled
 ;			||||`-----------; 0 = Memory test enabled
 ;                       |||`------------; 0 = Fast wait states for FE2010A
+;			||`-------------; 0 = Play boot sound
+;			|`--------------; 1 = Enforce floppy emulation for drive A:
 ;			`---------------; reserved
 nvram_trbo_mask equ	03h		; turbo mask
 nvram_ext_scan	equ	04h		; F0000-F7FFF BIOS extension scan bit
@@ -39,6 +46,14 @@ nvram_mem_test	equ	08h		; Memory test bit
 					; (0 - enabled, 1 - disabled)
 nvram_fast_ws	equ	10h		; Less wait states for FE2010A 
 					; (0 - enabled, 1 - disabled)
+%ifdef BOOT_SOUND
+conf_bootsnd equ	20h		; Boot sound
+%endif
+
+%ifdef CH375_FLOPPY
+conf_usbemu equ	40h		; Boot sound
+%endif
+
 %endif ; BIOS_SETUP
 
 ;=========================================================================
@@ -109,6 +124,17 @@ nvram_setup:
 	je	.no_save
 	cmp	al,'h'
 	je	.help
+
+%ifdef BOOT_SOUND
+	cmp	al,'b'
+	je	.set_bootsnd
+%endif
+
+%ifdef CH375_FLOPPY
+       	cmp	al,'u'
+	je	.set_usbemu
+%endif
+
 	jmp	.menu_input
 
 .help:
@@ -329,6 +355,35 @@ nvram_setup:
 	call	print
 	mov	si,msg_crlf
 	call	print
+
+%ifdef BOOT_SOUND
+	mov	si,msg_bootsnd
+	call	print
+	mov	si,msg_enabled		; assume boot sound enabled
+	test	ch,conf_bootsnd
+	jz	.print_bootsnd
+	mov	si,msg_disabled
+
+.print_bootsnd:
+	call	print
+	mov	si,msg_crlf
+	call	print
+%endif
+
+%ifdef CH375_FLOPPY
+	mov	si,msg_usbemu
+	call	print
+	mov	si,msg_disabled		; assume usbemu enforce disabled
+	test	ch,conf_usbemu
+	jz	.print_usbemu
+	mov	si,msg_enabled
+
+.print_usbemu:
+	call	print
+	mov	si,msg_crlf
+	call	print
+%endif
+
 	jmp	.menu_loop
 
 %ifdef AT_RTC
@@ -676,6 +731,104 @@ nvram_setup:
 	jmp	.menu_loop
 %endif ; MACHINE_FE2010A
 
+
+%ifdef CH375_FLOPPY
+.set_usbemu:
+	mov	ah,0Eh			; echo
+	mov	bx,0007h
+	int	10h
+	mov	si,msg_crlf
+	call	print
+.set_usbemu_loop:
+	mov	si,msg_set_usbemu
+	call	print
+
+.set_usbemu_input:
+	mov	ah,00h
+	int	16h
+	cmp	al,0Dh
+	je	.set_usbemu_exit
+	or	al,20h			; convert to lower case
+	cmp	al,'n'
+	je	.set_usbemu_disable
+	cmp	al,'y'
+	je	.set_usbemu_enable
+	cmp	al,'h'
+	je	.set_usbemu_help
+	jmp	.set_usbemu_input
+
+.set_usbemu_disable:
+	mov	ah,0Eh			
+	mov	bx,0007h
+	int	10h
+	and	ch,~conf_usbemu
+	jmp	.set_usbemu_exit
+
+.set_usbemu_enable:
+	mov	ah,0Eh			; echo
+	mov	bx,0007h
+	int	10h
+	or	ch,conf_usbemu
+	jmp	.set_usbemu_exit
+
+.set_usbemu_help:
+	mov	ah,0Eh			; echo
+	mov	bx,0007h
+	int	10h
+	mov	si,msg_usbemu_help
+	call	print
+	jmp	.set_usbemu_loop
+
+.set_usbemu_exit:
+	mov	si,msg_crlf
+	call	print
+	jmp	.menu_loop
+%endif 
+
+%ifdef BOOT_SOUND
+.set_bootsnd:
+	mov	ah,0Eh			; echo
+	mov	bx,0007h
+	int	10h
+	mov	si,msg_crlf
+	call	print
+.set_bootsnd_loop:
+	mov	si,msg_set_bootsnd
+	call	print
+
+.set_bootsnd_input:
+	mov	ah,00h
+	int	16h
+	cmp	al,0Dh
+	je	.set_bootsnd_exit
+	or	al,20h			; convert to lower case
+	cmp	al,'n'
+	je	.set_bootsnd_disable
+	cmp	al,'y'
+	je	.set_bootsnd_enable
+	jmp	.set_bootsnd_input
+
+.set_bootsnd_disable:
+	mov	ah,0Eh			
+	mov	bx,0007h
+	int	10h
+	or	ch,conf_bootsnd		; 1 means disabled
+	jmp	.set_bootsnd_exit
+
+.set_bootsnd_enable:
+	mov	ah,0Eh			; echo
+	mov	bx,0007h
+	int	10h
+	and	ch,~conf_bootsnd
+	jmp	.set_bootsnd_exit
+
+.set_bootsnd_exit:
+	mov	si,msg_crlf
+	call	print
+	jmp	.menu_loop
+%endif 
+
+
 .save:
 	mov	ah,0Eh			; echo
 	mov	bx,0007h
@@ -687,6 +840,9 @@ nvram_setup:
 %ifdef FLASH_NVRAM
 	call	flash_save
 %endif ; FLASH_NVRAM
+%ifdef XT_CF
+	call	xtcf_save
+%endif ;
 	call	detect_floppy		; set floppies in equipment_list
 	jmp	.exit
 

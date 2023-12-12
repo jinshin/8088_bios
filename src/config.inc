@@ -28,7 +28,7 @@
 %substr	BDAY		__UTC_DATE__	9,2
 
 %strcat DATE		BMONTH,'/',BDAY,'/',BYEAR	; BIOS release date MM/DD/YY
-%define VERSION		'1.0.4'		; BIOS version
+%define VERSION		'1.0.5'		; BIOS version
 
 ; Machine type is defined in the Makefile
 ;%define MACHINE_XI8088			; Xi 8088
@@ -86,6 +86,7 @@
 %define XT_CF		1		; Detect Compact Flash card
 %define ALT_SOUND	1		; Alternate sound, choosen by playing notes on online piano
 %define PIT_DELAY	1
+%define BIOS_SETUP	1
 %endif ; MACHINE_BOOK8088
 
 ; Settings for test machine (PCem, Xi 8088)
@@ -99,16 +100,17 @@
 %define MAX_RAM_SIZE	640		; Scan this much memory during POST
 %define RAM_TEST_BLOCK	16384		; block size for RAM test
 %define BOOT_SOUND	1		; Now it plays floppy seek and beep sound
-;%define NO_FLOPPY	1		; Book8088 has no floppy drives
-;%define CH375_FLOPPY	1		; Emulate floppy if flash drive inserted
+%define NO_FLOPPY	1		; Book8088 has no floppy drives
+%define CH375_FLOPPY	1		; Emulate floppy if flash drive inserted
 %define XT_CF		1		; Detect Compact Flash card
 ;%define XT_CF_FULL	1		; INT 13h for XT-IDE tryouts
 %define XTIDE		1		; For PCem
-%define AT_RTC_NVRAM			; Use AT RTC for BIOS configuration
+;%define AT_RTC_NVRAM			; Use AT RTC for BIOS configuration
 %define ALT_SOUND	1		; Alternate sound, choosen by playing notes on online piano
 %define PIT_DELAY	1
-%define AT_RTC				; Has AT-compatible RTC
+;%define AT_RTC				; Has AT-compatible RTC
 ;%define EBDA_SIZE	1		; 1KB reserved for EBDA
+%define BIOS_SETUP	1	
 %endif 
 
 ; Settings for MartyPC

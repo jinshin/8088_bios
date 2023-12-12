@@ -55,7 +55,15 @@
     stosb
 %endmacro
 
-bootsound:		jmp sndstart
+bootsound:	
+%ifdef BIOS_SETUP	
+		call	get_config_a
+		test	al,conf_bootsnd ;0 - enabled, default
+		jz	.go_on
+		ret		
+%endif
+.go_on:	
+		jmp sndstart
 ;
 int08_offset	equ 08h*4
 ;Uncompressor data

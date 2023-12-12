@@ -270,10 +270,9 @@ mouse_data	equ	28h	; 8 bytes - mouse data buffer
 %endif ; BIOS_SETUP
 %include	"delay.inc"		; delay function
 %include	"time1.inc"		; time services
-%ifndef	CH375_FLOPPY
 %include	"floppy1.inc"		; floppy services
-%else
-%include	"3751.inc"		; CH375 floppy emulation
+%ifdef CH375_FLOPPY
+%include	"ch375.inc"		; CH375 floppy emulation
 %endif
 %ifdef XT_CF
 %include	"xtcf.inc"
@@ -649,7 +648,7 @@ check_crtc:
 	ret
 
 ;=========================================================================
-; detect CGA (and above) videocard
+; detect CGA videocard
 ;-------------------------------------------------------------------------
 detect_cga:
 	mov	dx,3D4h
@@ -1215,7 +1214,7 @@ low_ram_ok:
 	jmp	.video_initialized	
 
 .continue_init:
-%endif ; MACHINE_BOOK8088
+%endif ;MACHINE_BOOK8088
 
 	mov	al,e_vid_no_bios
 	out	post_reg,al
@@ -1261,6 +1260,12 @@ low_ram_ok:
 
 	call	detect_cpu		; detect and print CPU type
 	call	detect_fpu		; detect and print FPU presence
+
+%ifdef XT_CF
+;Now might be good time to read settings from boot sector
+        call	detect_xtcf
+%endif
+
 %ifdef MACHINE_FE2010A
 	call	detect_chipset		; detect and print chipset type
 %endif ; MACHINE_FE2010A
@@ -1275,10 +1280,20 @@ low_ram_ok:
 	call	detect_parallel		; detect parallel ports and print
 					; findings
 	call	detect_floppy		; detect floppy drive types
+
+%ifdef CH375_FLOPPY
+	push	ax
+	call	detect_ch375
+	pop	ax
+	jc	.print_flop
+	and	al,0Fh
+	or	al,70h
+%endif
+.print_flop:
 	call	print_floppy		; print floppy drive types
 
 %ifdef XT_CF
-        call	detect_xtcf
+        call	print_xtcf
 %endif
 
 	call	detect_ram		; detect RAM, get RAM size in AX
@@ -1464,11 +1479,7 @@ config_table:
 
 %include	"serial2.inc"		; INT 14 - BIOS Serial Communications
 %include	"keyboard.inc"		; INT 16, INT 09
-%ifndef CH375_FLOPPY
 %include	"floppy2.inc"		; INT 13
-%else
-%include	"3752.inc"		; CH375 floppy emulation
-%endif
 %include	"printer2.inc"		; INT 17
 %include	"video.inc"		; INT 10
 

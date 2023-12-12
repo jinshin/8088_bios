@@ -89,6 +89,18 @@ int_13:
 	mov	bx,biosdseg
 	mov	ds,bx
 
+%ifdef	CH375_FLOPPY	
+;Only if enabled (enforced in BIOS or flash drive enabled on boot)
+      	mov	bl,[fd_enabled]
+	test	bl,bl
+	jz	.go_floppy
+;Only drive A
+	test	dl,dl
+	jnz	.go_floppy
+	jmp	ch375_int_13
+%endif
+.go_floppy:
+
 ; fn01 doesn't need drive type
 
 	cmp	ah,01h

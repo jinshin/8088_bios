@@ -8,6 +8,11 @@
 ;40:76	byte	XT fixed disk drive control byte
 ;40:77	byte	Port offset to current fixed disk adapter
 
+data_seg	equ	1000h
+set_offset	equ	200h+190h
+floppy_byte	equ	set_offset+1
+set_byte	equ	set_offset+2
+
 hdd_last_error	equ	74h
 hdd_count	equ	75h	;Should be one so far
 
@@ -20,6 +25,13 @@ hdd_port_offset	equ	77h	;Might be useful
 hdd_status	equ	8Ch	;40:8C	byte	Hard disk status returned by controller
 hdd_error	equ	8Dh	;40:8D	byte	Hard disk error returned by controller
 hdd_int		equ	8Eh	;40:8E	byte	Hard disk interrupt control flag(bit 7=working int)
+
+setup_byte	equ	15h	;40:15 Unused/Reserved
+settings_ok	equ	4	;settings are fine
+can_save	equ	8	;can use settings area
+check_error	equ	80h	;checksum error
+cf_present	equ	2	;CF disk present
+necv20_cpu	equ	1	;is NEC V20
 
 ;XTIDE is PCem mode
 
@@ -55,12 +67,18 @@ CTREG	equ	PORT+200h+6
 
 %endif
 
+%ifdef XT_IDE_FULL
 ;We use some reserved BDA bytes
 ;to store media info
 ;We use some in CH375 too
 cf_cylinders	equ	0B0h  ;Word
 cf_heads	equ	0B2h  ;Byte
 cf_sectors	equ	0B3h  ;Byte
+%endif
+
+;Reserved area to store config bytes
+setup_a		equ	0B0h
+setup_floppy	equ	0B1h
 
 ;If i ever get to it
 %ifdef XT_IDE_FULL
@@ -77,8 +95,10 @@ xtide_read_sector:
 	cld
 	mov	dx,PORT
 
-	test	bl,bl
-	jz	.j8088
+;	test	bl,bl
+;	jz	.j8088
+	
+	jmp	.j8088
 
 	mov	cx,256
 	cpu	186
@@ -131,8 +151,10 @@ xtide_write_sector:
 	cld
 	mov	dx,PORT
 
-	test	bl,bl
-	jz	.j8088
+;	test	bl,bl
+;	jz	.j8088
+
+	jmp	.j8088
 
 	mov	cx,256
 	cpu	186
@@ -167,10 +189,149 @@ xtide_write_sector:
 .exit:
 	ret
 
+;===============================================================
+;XT-CF save BIOS settings
+;We not booted and has our boot sector at 1000:0200
+;data_seg:set_offset
+;CH - config, CL - floppy setup
+xtcf_save:
+	push	ds
+	push	es
 
+	push	ax
+	push	cx
+	push	bx
+	push	dx
 
+	mov	ax,biosdseg
+	mov	ds,ax
+;Anyway we store current setting to reserved bytes, it's might be called by detect_floppy later
+	mov	[setup_floppy],cl	
+	mov	[setup_a],ch
+	or	byte [setup_byte],settings_ok		;Settings OK
+;Continue saving	
+	test	byte [setup_byte],can_save
+	jnz	.cont
+	mov	si,msg_cannot
+	jmp	.exit
+.cont:
+
+	mov	si,msg_saving
+	call	print
+
+	cld
+
+;Reread boot sector, set values and save
+	mov	ax,data_seg
+	mov	es,ax
+	mov	ds,ax
+
+	push	cx
+
+	xor	dx,dx
+	xor	cx,cx
+	xor	bx,bx
+	inc	dx
+	inc	cx
+	call	send_chs_values
+
+	mov	al,020h		;Read
+	mov     dx,COREG
+	out	dx,al
+
+	call	wait_poll
+	pop	cx
+	jc	.exit_error
+
+	push	cx
+	mov	di,200h   ;offset to boot sector
+	;mov	bl,[cpu_type]
+	call	xtide_read_sector
+	call	wait_poll
+	pop	cx
+	jc	.exit_error
+
+	mov	di,set_offset
+	xor	ax,ax
+	mov	al,90h
+	stosb
+	add	ah,al
+	mov	al,cl
+	stosb
+	add	ah,al
+	mov	al,ch
+	stosb
+	add	al,ah
+	stosb	
+
+	xor	dx,dx
+	xor	cx,cx
+	xor	bx,bx
+	inc	dx
+	inc	cx
+	call	send_chs_values
+
+	mov	al,030h		;Write
+	mov     dx,COREG
+	out	dx,al
+
+	call	wait_poll
+	jc	.exit_error
+
+	mov	si,200h   ;offset to boot sector
+	;mov	bl,[cpu_type]
+	call	xtide_write_sector
+	call	wait_poll
+	jc	.exit_error
+
+	mov	si,msg_save_ok
+	jmp	.exit
+
+.exit_error:
+	mov	si,msg_save_error
+.exit:
+	call	print
+	pop	dx
+	pop	cx
+	pop	bx
+	pop	ax
+
+	pop	es
+	pop	ds
+	ret
+
+;===============================================================
+;Print CF card name
+;
+print_xtcf:
+	push	ds
+	push	si
+	mov	ax,biosdseg
+	mov	ds,ax
+	test	byte [setup_byte],cf_present
+	jz	.nocf
+	mov	si,msg_cf
+	call	print
+	mov	ax,data_seg
+	mov	ds,ax
+	mov	si,36h
+	call	printds
+	mov	si,msg_cf
+	jmp	.exit
+.nocf:
+	mov	si,msg_nocf
+	call	print
+.exit:
+	mov	si,msg_crlf
+	call	print
+	pop	si
+	pop	ds
+	ret
+
+;===============================================================
+;Detect if CF card is present and store identify and boot sector
+;
 detect_xtcf:
-
 	push	ds
 	push	es
 	push	dx
@@ -194,12 +355,34 @@ detect_xtcf:
 	jc	.exit_error
 
 	xor	di,di
-	mov	ax,2000h
+	mov	ax,data_seg
 	mov	es,ax
-	mov	ax,biosdseg
-	mov	ds,ax
 
-	mov	bl,[cpu_type]
+	;mov	bl,[cpu_type]
+	call	xtide_read_sector
+
+;Read boot sector as well
+
+;DH - head
+;DL - Sector count
+;CL - Sector
+;BX - Cylinder
+	
+	xor	dx,dx
+	xor	cx,cx
+	xor	bx,bx
+	inc	dx
+	inc	cx
+	call	send_chs_values
+
+	mov	al,020h		;Read
+	mov     dx,COREG
+	out	dx,al
+
+	call	wait_poll
+	jc	.exit_error
+	
+	;mov	bl,[cpu_type]
 	call	xtide_read_sector
 
 ;Extract drive info
@@ -209,31 +392,31 @@ detect_xtcf:
 	pop	es
 	pop	ds
 
-%ifdef XT_CF_FULL
+;%ifdef XT_CF_FULL
 	xor	si,si
 	lodsw
 	lodsw
 	test	ax,ax
 	jz	.not_good
-	mov	es:[cf_cylinders],ax
+	;mov	es:[cf_cylinders],ax
 	lodsw
 	lodsw
 	test	ax,ax
 	jz	.not_good
-	mov	es:[cf_heads],al
+	;mov	es:[cf_heads],al
 	lodsw
 	lodsw
 	lodsw
 	test	ax,ax
 	jz	.not_good
-	mov	es:[cf_sectors],al
-	mov	al,1
-	mov	es:[hdd_count],al
+	;mov	es:[cf_sectors],al
+	;mov	al,1
+	;mov	es:[hdd_count],al
 
 .not_good:	
 	test	ax,ax	;Will be zero if something wrong
 	jz	.exit_error	
-%endif
+;%endif
 
 ;Get drive name
 
@@ -251,34 +434,59 @@ detect_xtcf:
 	xor	ax,ax
 	stosw
 
-	mov	si,msg_cf
-	call	print
+;Set drive present flag
+	mov	ax,biosdseg
+	mov	es,ax	
+	or	byte es:[setup_byte],cf_present
 
-	mov	si,36h
-	call	printds
+;We'll print it's name a bit later
+;1000:0036
+;So far we need to detect if settings are present
+;1000:0390 (190h in boot sector)
 
-	mov	si,msg_crlf
-	call	print
+	xor	ax,ax
+	mov	si,set_offset
+	lodsb
+	test	al,al
+	jz	.check_zeroes
+	cmp	al,90h                          ;90h looks like a good value to mark settings :)
+	jne	.alas				;not zeroes and not settings, sorry
+	add	ah,al
+	lodsb
+	mov	cl,al
+	add	ah,al
+	lodsb	
+	mov	ch,al
+	add	ah,al
+	lodsb
+	cmp	ah,al
+	je	.settings_ok
+	or	byte es:[setup_byte],check_error	;Checksum error
+.settings_ok:
+	or	byte es:[setup_byte],settings_ok		;Settings OK
+	or	byte es:[setup_byte],can_save		;Can use area
 
-	pop	si
-	pop	di
-	pop	dx
-	pop	es
-	pop	ds
+	mov     byte es:[setup_floppy],cl
+	mov     byte es:[setup_a],ch
 
-	ret
+	jmp	.ok
+.check_zeroes:
+	lodsw
+	test	ax,ax
+	jnz	.alas
+	lodsb
+	test	al,al
+	jnz	.alas
+	or	byte es:[setup_byte],can_save	;Clear area, can use
+.ok:
+.alas:
+	;clc
+	jmp	.exit
 
 .exit_error:
 .error_nodrive:
-
-	push	cs
-	pop	ds
-
-	mov	si,msg_nocf
-	call	print
-	mov	si,msg_crlf
-	call	print
-
+	;stc
+.exit:
 	pop	si
 	pop	di
 	pop	dx
@@ -287,12 +495,11 @@ detect_xtcf:
 
 	ret
 
-msg_cf		db	'Compact Flash Drive:        ', 00h
-msg_nocf	db	'Compact Flash Drive:        None', 00h
 
 ;---
 ;Identify drive command
 send_identify:
+
 	call	send_chs_zeros
 
 	mov	al,0ECh		;Identify
@@ -420,6 +627,36 @@ wait_poll:
 .drive_ready:
 
 	clc
+	ret
+
+;=================================================================
+;Get floppy config byte if present
+;
+get_floppy:	
+	push	ds
+	mov	ax,biosdseg
+	mov	ds,ax
+	mov	al,cs:[default_floppy]
+	test	byte [setup_byte],settings_ok
+	jz	.exit
+	mov	al,[setup_floppy]		
+.exit:
+	pop	ds
+	ret
+
+;=================================================================
+;Get BIOS config byte if present
+;
+get_config_a:
+	push	ds
+	mov	ax,biosdseg
+	mov	ds,ax
+	mov	al,cs:[default_config_a]
+	test	byte [setup_byte],settings_ok
+	jz	.exit
+	mov	al,[setup_a]		
+.exit:
+	pop	ds
 	ret
 
 ;==================== Cut here ====================================
@@ -649,7 +886,7 @@ hdd_13_read:
 
 	call	send_chs_values
 
-	mov	bl,[cpu_type]
+	;mov	bl,[cpu_type]
 
 	mov	al,020h		;Read
 	mov     dx,COREG
@@ -710,7 +947,7 @@ hdd_13_write:
 
 	call	send_chs_values
 
-	mov	bl,[cpu_type]
+	;mov	bl,[cpu_type]
 
 	push	es	
 	pop	ds

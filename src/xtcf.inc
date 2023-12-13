@@ -190,6 +190,24 @@ xtide_write_sector:
 	ret
 
 ;===============================================================
+;XT-CF apply BIOS settings
+;CH - config, CL - floppy setup
+xtcf_apply:
+	push	ds
+	mov	ax,biosdseg
+	mov	ds,ax
+;Store current setting to reserved bytes, it's might be called by detect_floppy later
+	mov	[setup_floppy],cl	
+	mov	[setup_a],ch
+	or	byte [setup_byte],settings_ok		;Settings OK
+	mov	si,msg_crlf
+	call	print
+	mov	si,msg_save_ok
+	call	print
+	pop	ds
+	ret
+
+;===============================================================
 ;XT-CF save BIOS settings
 ;We not booted and has our boot sector at 1000:0200
 ;data_seg:set_offset

@@ -120,6 +120,10 @@ nvram_setup:
 	je	.set_mem_test
 	cmp	al,'w'
 	je	.save
+%ifdef XT_CF
+	cmp	al,'a'
+%endif
+	je	.apply
 	cmp	al,'q'
 	je	.no_save
 	cmp	al,'h'
@@ -828,6 +832,15 @@ nvram_setup:
 	jmp	.menu_loop
 %endif 
 
+%ifdef XT_CF
+.apply:
+	mov	ah,0Eh			; echo
+	mov	bx,0007h
+	int	10h
+	call	xtcf_apply
+	call	detect_floppy		; set floppies in equipment_list
+	jmp	.exit
+%endif
 
 .save:
 	mov	ah,0Eh			; echo

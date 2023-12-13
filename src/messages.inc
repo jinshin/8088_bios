@@ -166,6 +166,9 @@ msg_set_rtc_help db	't - Set time', 0Dh, 0Ah
 %endif ; AT_RTC
 msg_set_def_help db	'p - Print current settings', 0Dh, 0Ah
 		db	'w - Save changes and exit', 0Dh, 0Ah
+%ifdef XT_CF
+		db	'a - Apply (w/o save) changes and exit', 0Dh, 0Ah
+%endif
 		db	'q - Exit without saving changes', 0Dh, 0Ah
 		db	'h - Show this help', 0Dh, 0Ah, 00h
 msg_set_prompt	db	0Dh, 0Ah, 'Enter command (h for help): ', 00h

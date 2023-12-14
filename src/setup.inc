@@ -82,7 +82,14 @@ nvram_setup:
 	mov	si,msg_set_prompt
 	call	print
 
-.menu_input:
+.menu_input:				; cleanup buffer before start preocessing input
+	mov	ah,01
+	int	16h
+	jz	.menu_next
+	mov	ah,00
+	int	16h
+	jmp	.menu_input
+.menu_next:
 	mov	ah,00h
 	int	16h
 	or	al,20h			; convert to lower case

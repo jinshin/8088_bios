@@ -122,8 +122,8 @@ nvram_setup:
 	je	.save
 %ifdef XT_CF
 	cmp	al,'a'
-%endif
 	je	.apply
+%endif
 	cmp	al,'q'
 	je	.no_save
 	cmp	al,'h'

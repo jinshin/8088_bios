@@ -446,45 +446,51 @@ wait_interrupt:
 ;-------------------------------------------------------------------------
 
 ;=========================================================================
-; Fill me
-;
-
 ch375_int_13:
 
+	call	get_status
+;Is zero even ok?
+	test	al,al
+	je	.next
+
+;Still status of last operation - no change?
+	cmp	al,usb_success
+	je	.next
+
+;USB_CONNECT means device inserted, disk change?
+	cmp	al,usb_connect
+	je	.disk_change
+
+;USB_CONNECT means device removed, no disk?
+	cmp	al,usb_disconnect
+	je	.no_disk
+	
+.next:
 	mov	al,[fd_media]
 	test	al,al
-	jz	.go13_reset
+	jnz	.continue
 
-.retry:
-	call	get_status
-	test	al,al
-	je	.allgoodgo
-
-	cmp	al,usb_success
-	je	.allgoodgo
-
-	cmp	al,usb_connect
-	jne	.no_disk
-
-;You might see here an ugly attempt to detect disk change, but it's not working
-.go13_reset:
+.disk_change:
 	call	reset_controller
 	call	read_boot
-	jc	.no_disk
-	mov	al,1
-	mov	[fd_media],al
+	jc	.bad_disk
+
+	mov	byte [fd_media],1
 	mov	ah,fdc_e_changed
 	mov	[fdc_last_error],ah
-	jmp	.retry
-
+	stc
+	jmp	ch375_int_13_exit
+	
+.bad_disk:
 .no_disk:
-	xor	ah,ah
-	mov	[fd_media],ah
-	dec	ah
+	mov	byte [fd_media],0
+	;dec	ah
+	mov	ah,fdc_e_changed
+	mov	[fdc_last_error],ah
 	stc
 	jmp	ch375_int_13_exit		
 
-.allgoodgo:
+.continue:
 	mov	ax,[bp+int_13_ax]
 	mov	cx,[bp+int_13_cx]
 	mov	dx,[bp+int_13_dx]
@@ -546,11 +552,17 @@ ch375_int_13_fn16:
 	mov	al,[fdc_last_error]
 	test	al,al
 	je	.over
-	xor	ah,ah
-	mov	[fdc_last_error],ah
-	mov	ah,fdc_e_changed
+	;xor	ah,ah
+	;mov	[fdc_last_error],ah
+	mov	ah,[fdc_last_error]
+	cmp	ah,fdc_e_changed
+	jne	.over
+	mov	ah,1
+	stc
+	jmp	.over2
 .over:
 	clc
+.over2:
 	mov	byte [fdc_last_error],0
 	jmp	ch375_int_13_exit
 

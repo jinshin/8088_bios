@@ -110,7 +110,7 @@
 %define PIT_DELAY	1
 ;%define AT_RTC				; Has AT-compatible RTC
 ;%define EBDA_SIZE	1		; 1KB reserved for EBDA
-%define BIOS_SETUP	1	
+;%define BIOS_SETUP	1	
 %endif 
 
 ; Settings for MartyPC

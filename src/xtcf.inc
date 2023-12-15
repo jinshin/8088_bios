@@ -189,6 +189,7 @@ xtide_write_sector:
 .exit:
 	ret
 
+%ifdef BIOS_SETUP
 ;===============================================================
 ;XT-CF apply BIOS settings
 ;CH - config, CL - floppy setup
@@ -317,6 +318,7 @@ xtcf_save:
 	pop	es
 	pop	ds
 	ret
+%endif
 
 ;===============================================================
 ;Print CF card name
@@ -647,6 +649,7 @@ wait_poll:
 	clc
 	ret
 
+%ifdef	BIOS_SETUP
 ;=================================================================
 ;Get floppy config byte if present
 ;
@@ -676,6 +679,7 @@ get_config_a:
 .exit:
 	pop	ds
 	ret
+%endif
 
 ;==================== Cut here ====================================
 

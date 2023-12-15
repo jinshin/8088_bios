@@ -83,6 +83,7 @@ reset_controller:
 	je	.next1
 	stc
 	ret
+
 .next1:
 	call	long_delay
 	mov	al,cmd_disk_init
@@ -92,9 +93,10 @@ reset_controller:
 	je	.next2
 	stc
 	ret
+	
 .next2:
 ;You need to do that, or init is not considered complete by CH375
-	mov	cx,4
+	mov	cx,5
 .rep1:
 	mov	al,cmd_disk_size
 	call	write_cmd
@@ -109,7 +111,7 @@ reset_controller:
 	ret
 .next3:
 ;You need to do that, or init is not considered complete by CH375
-	mov	cx,4
+	mov	cx,5
 .rep2:
 	mov	al,cmd_disk_ready
 	call	write_cmd
@@ -689,14 +691,17 @@ ch375_int_13_write:
 
 ;======================================================
 ; This should be called on boot if Drive A is set to 0
-;
+; al contains floppy config
 detect_ch375:
 	push	ds
 	push	dx
 
+	mov	bl,al
+
 	mov	ax,biosdseg
 	mov	ds,ax
 
+%ifdef BIOS_SETUP
 	call	get_config_a
 	test	al,conf_usbemu
 	jz	.detect_next
@@ -706,7 +711,9 @@ detect_ch375:
 	jmp	.exit
 
 .detect_next:
-	call	get_floppy
+%endif
+
+        mov	al,bl
 	shr	al,1
 	shr	al,1
 	shr	al,1
@@ -739,6 +746,7 @@ detect_ch375:
 	or	byte [equipment_list],equip_floppies
 
 .exit:
+
 	pop	dx
 	pop	ds
 	ret

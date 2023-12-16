@@ -127,12 +127,14 @@ reset_controller:
 .next4:
 	clc
 	ret
-
-;Write sectors to USB
+;=================================
+; Write sectors to USB
+; ES - caller data segment
+; DX:AX - LBA 
+;
 write_sectors:
-	mov	dx,ax
-	mov	si,[bp+int_13_bx]
-	cld
+
+	push	ds
 	xor	cx,cx
 	mov	cl,[bp+int_13_al]
 	test	cl,cl
@@ -140,6 +142,10 @@ write_sectors:
 	stc
 	jmp	.exit
 .next1:
+	mov	bx,ax	
+	mov	si,[bp+int_13_bx]
+
+	cld
 ;convert 512b sectors to 64b chunks
 	push	cx
 	shl	cx,1
@@ -149,12 +155,13 @@ write_sectors:
 	mov	al,cmd_write_disk
 	call	write_cmd
 ;LBA
-	mov	ax,dx
+	mov	al,bl
 	call	write_data
-	mov	al,ah
+	mov	al,bh
 	call	write_data
-	xor	al,al
+	mov	al,dl
 	call	write_data
+	mov	al,dh
 	call	write_data
 ;sectors
 	pop	ax ;cx->ax
@@ -177,32 +184,34 @@ write_sectors:
 	mov	al,40h
 	call	write_data
 
-        push	cx
-	mov	cx,ax
-.writel:
+;Maximum unroll
+%rep	40h
 	lodsb
 	out	dx,al
-	loop	.writel
-	pop	cx
-;continue
+%endrep
+
 	mov	al,cmd_write_cont
 	call	write_cmd
-	loop	.main
-	clc
-	test	cx,cx
-	jz	.exit
+	dec	cx
+	jz	.done
+	jmp	.main
+.done:
+	call	wait_status
 	stc
+	cmp	al,usb_success
+	jne	.exit
+	clc
 .exit:		
-	mov	bx,biosdseg
-	mov	ds,bx
-	
+	pop	ds
 	ret
 
-;Read sectors from USB
+;=================================
+; Read sectors from USB
+; ES - caller data segment
+; DX:AX - LBA 
+;
 read_sectors:
-	mov	bx,ax
-	mov	di,[bp+int_13_bx]
-	cld
+
 	xor	cx,cx
 	mov	cl,[bp+int_13_al]
 	test	cl,cl
@@ -210,6 +219,10 @@ read_sectors:
 	stc
 	jmp	.exit
 .next1:
+	mov	bx,ax	
+	mov	di,[bp+int_13_bx]
+
+	cld
 ;convert 512b sectors to 64b chunks
 	push	cx
 	shl	cx,1
@@ -218,14 +231,16 @@ read_sectors:
 ;start
 	mov	al,cmd_read_disk
 	call	write_cmd
-;65535 sectors are our maximum
+
 	mov	al,bl
 	call	write_data
 	mov	al,bh
 	call	write_data
-	xor	al,al
+	mov	al,dl
 	call	write_data
+	mov	al,dh
 	call	write_data
+
 ;sectors
 	pop	ax ;cx->ax
 	call	write_data
@@ -249,21 +264,22 @@ read_sectors:
 	stc
 	jmp	.exit
 .transfer:
-        push	cx
-	mov	cx,ax
-.readl:
+;Too much unroll?
+%rep	40h	
 	in	al,dx
 	stosb
-	loop	.readl
-	pop	cx
-;continue
+%endrep
 	mov	al,cmd_read_cont
 	call	write_cmd
-	loop	.main
-	clc
-	test	cx,cx
-	jz	.exit
+	dec	cx
+	jz	.done
+	jmp	.main
+.done:
+	call	wait_status
 	stc
+	cmp	al,usb_success
+	jne	.exit
+	clc
 .exit:		
 	ret
 
@@ -397,10 +413,10 @@ read_data:
 	pop	dx
 	ret
 
-
-;Taken from CH37X-BIOS
+;==============================
 ;Wait for interrupt
-wait_interrupt:
+;CH37X BIOS version 
+wait_interrupt_old:
 	push	dx
 	push	cx
 	xor	cx,cx
@@ -416,6 +432,25 @@ wait_interrupt:
 	pop	cx
 	pop	dx
 	ret
+
+wait_interrupt:
+	push	dx
+	push	cx
+	xor	cx,cx
+	mov	dx,cmd_port
+.w:
+	in	al,dx
+	test	al,80h	
+	jz	.end
+	jmp	.l	;Jumps invalidate cache (?)
+.l:
+	loop	.w	
+.end:
+	pop	cx
+	pop	dx
+	ret
+
+
 
 ; This code implements floppy int 13h
 ; Emulation via ch375 chip
@@ -537,8 +572,11 @@ ch375_int_13_exit:
 exit13: 
 	iret
 
-
-ch375_int_13_fn15:
+;=================================================
+; We always support change line
+; (hopefully)
+;
+ch375_int_13_fn15:		;return drive type
 	xor	ax,ax
 	mov	al,[fd_enabled]
 	test	al,al
@@ -549,6 +587,10 @@ ch375_int_13_fn15:
 	mov	byte [fdc_last_error],0
 	jmp	ch375_int_13_exit
 
+;================================================
+; Detect disk change
+; Seem to be working
+;
 ch375_int_13_fn16:
 	xor	ax,ax
 	mov	al,[fdc_last_error]
@@ -568,32 +610,86 @@ ch375_int_13_fn16:
 	mov	byte [fdc_last_error],0
 	jmp	ch375_int_13_exit
 
-
-;Return drive type as 1.44, 0 if disabled
+;===================================================
+; Get drive type, fn_08
+; If emulation enforced - return set drive type
+; but 1.44 if None
+; If auto - return 1.44 if something present
+;
 ch375_int_13_drivetype:
 	mov	al,[fd_enabled]
-	je	.return_1440
+	cmp	al,2			;enforced emulation, return selected type or 1.44 if None
+	jne	.next
+	xor	ax,ax
+%ifdef	BIOS_SETUP
+	call	get_floppy
+	shr	al,1
+	shr	al,1
+	shr	al,1
+	shr	al,1
+	jne	.return_type
+%endif
+	mov	al,type_1440
+	jmp	.return_type
+
+.next:
+	cmp	al,1			;autoemulation active
+	jne	.return_none
+	mov	al,type_1440
+	jmp	.return_type
+
+.return_none:
 	xor	cx,cx
 	xor	di,di
 	mov	byte [bp+int_13_bl],cl	; drive type is zero
 	mov	byte [bp+int_13_dh],cl	; maximal head number is zero
 	mov	es,cx			; disk parameter table segment = 0000h
-	jmp	ch375_int_13_comp
+	jmp	.set_parameters
 
-.return_1440:
-	mov	ah,1
-	mov	byte [bp+int_13_dl],ah	; pass number of drives to caller
+.return_type:				; Copypasted from Sergey's
 	mov	byte [bp+int_13_dh],1	; maximal head number is 1 for floppy
-	mov	al,4
 	mov	byte [bp+int_13_bl],al	; pass drive type to caller
 	mov	cx,cs
 	mov	es,cx			; diskette parameter table segment
 
+	cmp	al,type_360
+	je	.set_360
+	cmp	al,type_720
+	je	.set_720
+	cmp	al,type_1200
+	je	.set_1200
+	cmp	al,type_1440
+	je	.set_1440
+.set_2880:
+	mov	al,fdc_m_try_2880	; try 2.88M in 2.88M drive
+	lea	di,[media_2880]		; only 2.88M uses 1 Mbps rate
+	mov	cx,4F24h		; 2.88M - 80 cylinders, 36 sectors
+	jmp	.set_media_type
+.set_360:
+	mov	al,fdc_m_360in360
+	lea	di,[media_360_in_360]
+	mov	cx,2709h		; 360K - 40 cylinders, 9 sectors
+	jmp	.set_media_type
+
+.set_720:
+	mov	al,fdc_m_720
+	lea	di,[media_720]
+	mov	cx,4F09h		; 720K - 80 cylinders, 9 sectors
+	jmp	.set_media_type
+
+.set_1200:
+	mov	al,fdc_m_try_1200in1200
+	lea	di,[media_1200]
+	mov	cx,4F0Fh		; 1.2M - 80 cylinders, 15 sectors
+	jmp	.set_media_type
+
+.set_1440:
+	mov	al,fdc_m_try_1440
+	lea	di,[media_1440]
 	mov	cx,4F12h		; 1.44M - 80 cylinders, 18 sectors
 
-	mov	di,media_1440	
-
-ch375_int_13_comp:
+.set_media_type:
+.set_parameters:
 	xor	ax,ax			; AH = 00h - successful completion
 	mov	byte [bp+int_13_al],al	; successful completion
 	mov	byte [fdc_last_error],al
@@ -602,8 +698,44 @@ ch375_int_13_comp:
 	mov	word [bp+int_13_di],di	; diskette parameter table pointer
 	jmp	ch375_int_13_exit
 
-;simplified for floppy
+; =========================
+; CHS to LBA full version
+; Returns LBA in DX:AX
+; Takes BIOS int 13h params
+;
 chs_to_lba:
+	mov	dx,cx
+	xchg	dh,dl
+	mov	cl,6
+	shr	dh,cl
+	mov	ax,dx
+	xor	dx,dx
+	xor	bx,bx
+	mov	bl,[fd_heads]
+	mul	bx
+	mov	bl,[bp+int_13_dh]
+	add	ax,bx
+	adc	dx,0
+	mov	bl,[fd_sectors]
+	mul	bx
+	mov	bl,[bp+int_13_cl]
+	and	bl,111111b
+	test	bl,bl
+	jz	.exit_err
+	dec	bl
+	add	ax,bx
+	adc	dx,0
+	clc
+	ret
+.exit_err:
+	stc
+	ret
+
+;=============================
+; CHS to LBA
+; simplified for floppy
+;
+chs_to_lba_simple:
 	mov	ax,cx ;save track/sector
 	mov	bx,cx
 	and	bl,111111b
@@ -613,8 +745,11 @@ chs_to_lba:
 	stc
 	jmp	.exit	
 .next:
-	mov	cl,8  ;we don't need high two bits
-	shr	ax,cl ;track number for LBA
+;	mov	cl,8  ;we don't need high two bits
+;	shr	ax,cl ;track number for LBA
+ 	mov	al,ah
+	xor	ah,ah
+
 	mov	cl,[fd_heads]
 	shr	cl,1
 	shl	ax,cl  ;track * heads count
@@ -635,11 +770,11 @@ chs_to_lba:
 .next2:
 ;+ sector	
 	add	ax,bx
+	xor	dx,dx
 	clc
 .exit:
 	ret
 	
-;You might see here an ugly attempt to detect disk change, but it's not working
 ch375_int_13_reset:
 	call	reset_controller
 	call	read_boot
@@ -676,7 +811,8 @@ ch375_int_13_read:
 	jc	ch375_int_13_exit
 	call	read_sectors
 	jnc	ch375_int_13_exit
-	;call	beep
+	mov	ah,010h	;Fixme - ECC error
+	jmp	ch375_int_13_exit
 	jmp	ch375_int_13_exit
 
 ;Write sectors
@@ -685,9 +821,8 @@ ch375_int_13_write:
 	jc	ch375_int_13_exit
 	call	write_sectors
 	jnc	ch375_int_13_exit
-	;call	beep
+	mov	ah,0CCh	;Write error
 	jmp	ch375_int_13_exit
-
 
 ;======================================================
 ; This should be called on boot if Drive A is set to 0

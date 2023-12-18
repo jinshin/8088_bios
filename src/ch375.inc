@@ -2,7 +2,6 @@
 ; emulation via ch375 chip
 ; parts taken from floppy1.inc and floppy2.inc for compatibility
 ; Made by Serhii Liubshin, 2023
-; First part, comtains mostly CH375 interfacing procs
 
 cmd_port	equ	261h
 data_port	equ	260h
@@ -283,6 +282,33 @@ read_sectors:
 .exit:		
 	ret
 
+;Floppy boot sector structure
+
+;0 – 2	Assembly Instruction for jump code.
+;3 – 10	OEM Name.
+;11 – 12	Bytes per sector.
+;13	Sector per cluster.
+;14 – 15	Number of reserved sector(Boot Sector)
+;16	Number of File Allocation Table
+;17 – 18	Maximum entries possible under root directory.
+;19 – 20	Total number of sectors in file system.
+;21	Media Type(According to Microsoft 0xf8 for fixed disk and 0xf0 for removable disk.
+;Seen other values (0xF9 for example) here
+;22 – 23	Sectors allocated for each File allocation table.
+;24 – 25	Sectors per track.
+;26 – 27	Number of head in storage device.
+;28 – 31	Number of sectors before start of partition(Not applicable for floppy).
+;32 – 35	Number of sectors in file system(32-bit value, not applicable for floppy).
+;36	BIOS INT13h drive number.
+;37	Not Used.
+;38	Extended boot signature.
+;39 – 42	Volume Serial Number.
+;43 – 53	Volume label in ASCII.
+;54 – 61	File System Type.
+;62 – 509	Boot Code, otherwise contains information to replace disk.
+;510 – 511	Signature for File System.
+
+
 ;Read boot sector, enable emulation if something resembling floppy image is there
 ;We store only needed stuff as we don't have a memory buffer, it's ROM
 read_boot:
@@ -330,53 +356,75 @@ read_boot:
 ;	mov	[fd_totalsectors],ax
 
 ;skip to sectors per track/head
+	in	al,dx      ;Media type 0Fxh here
+
 	in	al,dx
 	in	al,dx
+
+;get and validate sectors - our range is 8-36(64?)
 	in	al,dx
-;get sectors
+	mov	ah,al
 	in	al,dx
+	xchg	ah,al
+		
+	cmp	ax,8
+	jb	.sec_invalid
+	cmp	ax,64
+	jbe	.sec_ok
+.sec_invalid:
+        xor	ax,ax
+.sec_ok:
 	mov	[fd_sectors],al
-;skip high part
+
+;get and validate heads - our range is 1-2(64?)
 	in	al,dx
-;get heads
+	mov	ah,al
 	in	al,dx
+	xchg	ah,al
+		
+	cmp	ax,1
+	jb	.h_invalid
+	cmp	ax,64
+	jbe	.h_ok
+.h_invalid:
+        xor	ax,ax
+.h_ok:
 	mov	[fd_heads],al
 
-;that's dumb, but you need to 'continue read' until usb_success
+;We need to 'continue read' until usb_success
 ;i coudn't find a better way
 
 	mov	cx,8
-dumbloop:	
+exhaust_loop:	
 	mov	al,cmd_read_cont
 	call	write_cmd
 	call	wait_status
 	cmp	al,usb_success
-	je	exit_dumb
-	loop	dumbloop
-exit_dumb:
+	je	exit_exhaust
+	loop	exhaust_loop
+exit_exhaust:
 
-;quick sanity check
 	mov	al,[fd_heads]
-	cmp	al,0
-	je	bad_exit
-	cmp	al,2
-	ja	bad_exit
-	
+	test	al,al
+	jz	bad_exit
+
 	mov	al,[fd_sectors]
-	cmp	al,8
-	jb	bad_exit
-	cmp	al,36
-	ja	bad_exit
+	test	al,al
+	jz	bad_exit
+
 	clc
 	ret
+
 bad_exit:
 	stc
 	ret
 
 ;delays, most probably not even close to correct
 short_delay:
-	nop
-	nop
+	push	cx
+;	mov	cx,4
+;.l:	loop	.l
+	pop	cx
 	ret
 
 long_delay:
@@ -433,6 +481,7 @@ wait_interrupt_old:
 	pop	dx
 	ret
 
+
 wait_interrupt:
 	push	dx
 	push	cx
@@ -449,14 +498,6 @@ wait_interrupt:
 	pop	cx
 	pop	dx
 	ret
-
-
-
-; This code implements floppy int 13h
-; Emulation via ch375 chip
-; parts taken from floppy1.inc and floppy2.inc for compatibility
-; Made bu Serhii Liubshin, 2023
-; Second part to preserve int location
 
 ;=========================================================================
 ; int_13 - BIOS floppy disk services
@@ -483,6 +524,7 @@ wait_interrupt:
 ;-------------------------------------------------------------------------
 
 ;=========================================================================
+
 ch375_int_13:
 
 	call	get_status
@@ -722,7 +764,7 @@ chs_to_lba:
 	and	bl,111111b
 	test	bl,bl
 	jz	.exit_err
-	dec	bl
+	dec	bx
 	add	ax,bx
 	adc	dx,0
 	clc

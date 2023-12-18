@@ -126,14 +126,20 @@ reset_controller:
 .next4:
 	clc
 	ret
+
 ;=================================
 ; Write sectors to USB
 ; ES - caller data segment
 ; DX:AX - LBA 
 ;
+; If boot sector overwritten
+; reinit our media data
+;
 write_sectors:
 
 	push	ds
+	push	ax
+	push	dx
 	xor	cx,cx
 	mov	cl,[bp+int_13_al]
 	test	cl,cl
@@ -141,6 +147,7 @@ write_sectors:
 	stc
 	jmp	.exit
 .next1:
+
 	mov	bx,ax	
 	mov	si,[bp+int_13_bx]
 
@@ -166,8 +173,7 @@ write_sectors:
 	pop	ax ;cx->ax
 	call	write_data
 
-	mov	dx,data_port
-	xor	ax,ax
+;DS:SI is input buffer
 	push	es
 	pop	ds
 
@@ -183,7 +189,8 @@ write_sectors:
 	mov	al,40h
 	call	write_data
 
-;Maximum unroll
+	mov	dx,data_port
+
 %rep	40h
 	lodsb
 	out	dx,al
@@ -200,8 +207,21 @@ write_sectors:
 	cmp	al,usb_success
 	jne	.exit
 	clc
+
 .exit:		
+
+;If that was a write to sector 0, reread media info
+	pop	dx
+	pop	ax
 	pop	ds
+	jc	.e2
+	test	ax,ax
+	jnz	.e2
+	test	dx,dx
+	jnz	.e2
+
+	call	read_boot
+.e2:
 	ret
 
 ;=================================
@@ -245,7 +265,6 @@ read_sectors:
 	call	write_data
 
 	mov	dx,data_port
-	xor	ax,ax
 
 .main:	
 	call	wait_status
@@ -263,11 +282,12 @@ read_sectors:
 	stc
 	jmp	.exit
 .transfer:
-;Too much unroll?
+
 %rep	40h	
 	in	al,dx
 	stosb
 %endrep
+
 	mov	al,cmd_read_cont
 	call	write_cmd
 	dec	cx
@@ -421,10 +441,12 @@ bad_exit:
 
 ;delays, most probably not even close to correct
 short_delay:
-	push	cx
-;	mov	cx,4
+;	push	cx
+;	mov	cx,10
 ;.l:	loop	.l
-	pop	cx
+;	pop	cx
+	nop
+	nop
 	ret
 
 long_delay:

@@ -329,6 +329,19 @@ read_sectors:
 ;510 – 511	Signature for File System.
 
 
+;F0     2.88 MB    3.5-inch, 2-sided, 36-sector
+;F0     1.44 MB    3.5-inch, 2-sided, 18-sector
+;F9     720K       3.5-inch, 2-sided, 9-sector
+;F9     1.2 MB     5.25-inch, 2-sided, 15-sector
+;FD     360K       5.25-inch, 2-sided, 9-sector
+;FF     320K       5.25-inch, 2-sided, 8-sector
+;FC     180K       5.25-inch, 1-sided, 9-sector
+;FE     160K       5.25-inch, 1-sided, 8-sector
+;FE     250K       8-inch, 1-sided, single-density
+;FD     500K       8-inch, 2-sided, single-density
+;FE     1.2 MB     8-inch, 2-sided, double-density
+;F8     -----      Fixed disk
+
 ;Read boot sector, enable emulation if something resembling floppy image is there
 ;We store only needed stuff as we don't have a memory buffer, it's ROM
 read_boot:

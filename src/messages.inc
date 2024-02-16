@@ -35,6 +35,9 @@ msg_copyright	db	0Dh, 0Ah
 ;		db	"--------------------------------------------------------------------------------"
 		db	"Book8088"
 %endif ; MACHINE_BOOK8088
+%ifdef MACHINE_MISTER
+		db	"MiSTer PC XT"
+%endif
 %ifdef MACHINE_XT
 		db	"XT 8088"
 %endif ; MACHINE_XT

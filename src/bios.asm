@@ -135,7 +135,7 @@ fe_clk_9_fast	equ	0C0h	; FE2010A 9.54 MHz CPU clock frequency, fast WS
 %endif ; MACHINE_FE2010A
 
 ; IBM PC/XT - Port 63h - 8255 PPI Control Word
-%ifdef MACHINE_XT
+%ifdef MACHINE_XT or MACHINE_MISTER
 ppi_cwd_reg	equ	63h	; 8255 PPI control word register
 ppi_cwd_value	equ	99h	; 8255 PPI control word value for IBM XT:
 				; Port A - mode 0 (simple I/O), input
@@ -881,7 +881,7 @@ cpu_ok:
 	out	ppi_pb_reg,al		; and also turn off the speaker
 %endif ; MACHINE_BOOK8088
 
-%ifdef MACHINE_XT
+%ifdef MACHINE_XT or MACHINE_MISTER
 	mov	al,ppi_cwd_value	; PPI port A and port C inputs
 	out	ppi_cwd_reg,al		; PPI control word register
 	mov	al,10100101b		; Clear keyboard, disable keyboard clock
@@ -902,7 +902,7 @@ cpu_ok:
 	mov	al,e_init_dmac
 	out	post_reg,al
  	out	0Dh,al			; DMA Master Clear register - reset DMA
-%ifdef MACHINE_XT or MACHINE_MARTYPC
+%ifdef MACHINE_XT or MACHINE_MARTYPC or MACHINE_MISTER
 					; set up DRAM refresh on DMA channel 0
 	mov	al,0ffh			; 16-bit memory refresh counter = 0FFFFh
 	out	dmac_ch0_count_reg,al	; write low byte
@@ -1188,7 +1188,7 @@ low_ram_ok:
 
 .no_video_bios:
 
-%ifdef MACHINE_BOOK8088 or MACHINE_MARTYPC
+%ifdef MACHINE_BOOK8088 or MACHINE_MARTYPC or MACHINE_MISTER
 	call	detect_cga
 	jnz	.nocga
 	or	byte [equipment_list],equip_color_80 ; CGA adapter

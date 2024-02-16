@@ -46,7 +46,7 @@ msg_copyright	db	0Dh, 0Ah
 		db	". "
 		db	"Copyright (C) 2010 - ",FULLYEAR," Sergey Kiselev", 0Dh, 0Ah
 %ifdef MACHINE_BOOK8088 or MACHINE_MARTYPC
-		db	"Parts (C) ",FULLYEAR," Serhii Liubshin. Built ",__UTC_DATE__," ",__UTC_TIME__," UTC", 0Dh, 0Ah
+		db	"Parts (C) 2023 - ",FULLYEAR," Serhii Liubshin. Built ",__UTC_DATE__," ",__UTC_TIME__," UTC", 0Dh, 0Ah
 %endif
 		db	"Distributed under the terms of "
 		db	"the GNU General Public License", 0Dh, 0Ah

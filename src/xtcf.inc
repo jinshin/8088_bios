@@ -27,6 +27,7 @@ hdd_error	equ	8Dh	;40:8D	byte	Hard disk error returned by controller
 hdd_int		equ	8Eh	;40:8E	byte	Hard disk interrupt control flag(bit 7=working int)
 
 setup_byte	equ	15h	;40:15 Unused/Reserved
+
 settings_ok	equ	4	;settings are fine
 can_save	equ	8	;can use settings area
 check_error	equ	80h	;checksum error
@@ -358,6 +359,14 @@ detect_xtcf:
 	push	di
 	push	si
 
+;%ifdef BIOS_SETUP
+;	push	ds
+;	mov	ax,biosdseg
+;	mov	ds,ax
+;	mov	byte [setup_byte],0
+;	pop	ds
+;%endif
+
 	mov	dx,STREG
 	in	al,dx
 	cmp	al,0FFh
@@ -655,8 +664,10 @@ wait_poll:
 ;
 get_floppy:	
 	push	ds
+	push	ax
 	mov	ax,biosdseg
 	mov	ds,ax
+	pop	ax
 	mov	al,cs:[default_floppy]
 	test	byte [setup_byte],settings_ok
 	jz	.exit

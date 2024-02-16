@@ -191,9 +191,9 @@ equip_floppy2	equ	0000000001000000b	; 2nd floppy drive installed
 
 post_flags	equ	12h	; byte - post flags
 post_setup	equ	01h	; run NVRAM setup
-%ifdef MACHINE_BOOK8088
-setup_byte	equ	15h	; Listed as reserved
-%endif
+;%ifdef MACHINE_BOOK8088
+;setup_byte	equ	15h	; Listed as reserved
+;%endif
 memory_size	equ	13h	; word - memory size in KiB
 kbd_flags_1	equ	17h	; byte - keyboard shift flags 1
 kbd_flags_2	equ	18h	; byte - keyboard shift flags 2

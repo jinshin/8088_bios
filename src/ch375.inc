@@ -1,7 +1,10 @@
+;
+; CH375 floppy emulation module for 8088_bios
+;
 ; This code implements floppy int 13h
 ; emulation via ch375 chip
 ; parts taken from floppy1.inc and floppy2.inc for compatibility
-; Made by Serhii Liubshin, 2023
+; Made by Serhii Liubshin, 2023-2024
 
 cmd_port	equ	261h
 data_port	equ	260h
@@ -51,17 +54,11 @@ fd_sectors	equ	0AFh
 
 wait_status:
 	call	wait_interrupt
-	mov	al,cmd_get_status
-	call	write_cmd
-	call	read_data
-	ret
-
 get_status:
 	mov	al,cmd_get_status
 	call	write_cmd
 	call	read_data
 	ret
-
 
 ;Do a full reset
 
@@ -890,7 +887,6 @@ ch375_int_13_read:
 	jnc	ch375_int_13_exit
 	mov	ah,010h	;Fixme - ECC error
 	jmp	ch375_int_13_exit
-	jmp	ch375_int_13_exit
 
 ;Write sectors
 ch375_int_13_write:
@@ -903,7 +899,8 @@ ch375_int_13_write:
 
 ;======================================================
 ; This should be called on boot if Drive A is set to 0
-; al contains floppy config
+; AL contains floppy config
+;
 detect_ch375:
 	push	ds
 	push	dx

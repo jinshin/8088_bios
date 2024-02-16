@@ -29,6 +29,9 @@ XTIDE_300_V20=../xtide_r625/ide_xtp-cf-lite_300h.bin
 XTIDE_300_FULL=../xtide_r625/ide_xt.bin
 XTIDE_300_V20_FULL=../xtide_r625/ide_xtp.bin
 
+MXTIDE_300_FULL=../xtide_r625/ide_xtm.bin
+MXTIDE_300_V20_FULL=../xtide_r625/ide_xtpm.bin
+
 XTIDE_320=../xtide_r625/ide_xt-cf-lite_320h.bin
 
 XEBEC=../xebec/xebec.bin
@@ -124,10 +127,15 @@ bios-martypc.rom: bios-martypc.bin $(XEBEC)
 TEST=bios-test.bin
 
 bios-test.rom: bios-test.bin
+	@echo "Generating $@"
+	$(eval XTIDESIZE2=$(shell du -B 512 --apparent-size $(MXTIDE_300_FULL) | awk '{print $$1;}'))
 	$(eval BIOSSIZE=$(shell du -B 512 --apparent-size $(TEST) | awk '{print $$1;}'))
-	$(eval GAPSIZE=$(shell awk -v SZ1=$(BIOSSIZE) 'BEGIN { print 128-SZ1; }'))
+	# We have 64K (128 pages) BIOS chip
+	$(eval GAPSIZE=$(shell awk -v SZ1=$(BIOSSIZE) -v SZ3=$(XTIDESIZE2) 'BEGIN { print 128-SZ1-SZ3; }'))
 	@echo "GAPSIZE: $(GAPSIZE)"
-	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" > $@
+	cat $(MXTIDE_300_FULL) >> $@
+	# Fill gap to the main BIOS, use 512 blocks corresponding to BIOS page size
+	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" >> $@
 	cat $(TEST) >> $@
 
 clean:

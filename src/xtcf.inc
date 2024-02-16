@@ -362,15 +362,14 @@ detect_xtcf:
 %ifdef MACHINE_MISTER
 ;Reset ATA
 
-	mov	cx,100
-.reset_loop:	
-
 	mov	dx,COREG
 	mov	al,4
 	out	dx,al	
 	xor	ax,ax
 	out	dx,al
 
+	mov	cx,4
+.reset_loop:	
 	mov	al,8
 	out	dx,al
 
@@ -401,9 +400,6 @@ detect_xtcf:
 
 	call	wait_poll
 	jc	.exit_error
-
-	mov	bl,2
-	call	beep
 
 	xor	di,di
 	mov	ax,data_seg

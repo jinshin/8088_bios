@@ -359,13 +359,30 @@ detect_xtcf:
 	push	di
 	push	si
 
-;%ifdef BIOS_SETUP
-;	push	ds
-;	mov	ax,biosdseg
-;	mov	ds,ax
-;	mov	byte [setup_byte],0
-;	pop	ds
-;%endif
+%ifdef MACHINE_MISTER
+;Reset ATA
+
+	mov	cx,100
+.reset_loop:	
+
+	mov	dx,COREG
+	mov	al,4
+	out	dx,al	
+	xor	ax,ax
+	out	dx,al
+
+	mov	al,8
+	out	dx,al
+
+	push	cx
+	call	wait_poll	
+	pop	cx
+
+	jnc	.go_1
+	loop	.reset_loop
+
+.go_1:
+%endif
 
 	mov	dx,STREG
 	in	al,dx
@@ -373,15 +390,20 @@ detect_xtcf:
 	jnz	.go_on
 	jmp	.error_nodrive
 .go_on:
+
 %ifndef XTIDE
 	call	set_pio
 	jc	.exit_error
 %endif
+
 	call	send_identify
 	jc	.exit_error
 
 	call	wait_poll
 	jc	.exit_error
+
+	mov	bl,2
+	call	beep
 
 	xor	di,di
 	mov	ax,data_seg
@@ -538,8 +560,10 @@ send_identify:
 	in	al,dx
 	or	al,al
 	jnz	.ident_ok
+
 	stc
 	ret
+
 .ident_ok:
 	call	wait_poll
 	ret

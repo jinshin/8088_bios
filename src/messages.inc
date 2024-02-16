@@ -48,7 +48,7 @@ msg_copyright	db	0Dh, 0Ah
 		db	VERSION
 		db	". "
 		db	"Copyright (C) 2010 - ",FULLYEAR," Sergey Kiselev", 0Dh, 0Ah
-%ifdef MACHINE_BOOK8088 or MACHINE_MARTYPC
+%ifdef MACHINE_BOOK8088 or MACHINE_MARTYPC or MACHINE_MISTER
 		db	"Parts (C) 2023 - ",FULLYEAR," Serhii Liubshin. Built ",__UTC_DATE__," ",__UTC_TIME__," UTC", 0Dh, 0Ah
 %endif
 		db	"Distributed under the terms of "
@@ -105,8 +105,13 @@ msg_floppy_ch375 db	'CH375 USB', 00h
 %endif
 
 %ifdef XT_CF
+%ifdef MACHINE_MISTER
+msg_cf		db	'XT-IDE Master Drive:        ', 00h
+msg_nocf	db	'XT-IDE Master Drive:        None', 00h
+%else
 msg_cf		db	'Compact Flash Drive:        ', 00h
 msg_nocf	db	'Compact Flash Drive:        None', 00h
+%endif
 %endif
 
 %ifdef PS2_MOUSE

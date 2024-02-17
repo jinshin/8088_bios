@@ -683,6 +683,55 @@ no_video_post:
 	ret
 
 ;=========================================================================
+; Video card detection code
+;-------------------------------------------------------------------------
+init_videocard:
+;%ifdef MACHINE_BOOK8088 or MACHINE_MARTYPC or MACHINE_MISTER
+	call	detect_cga
+	jnz	.nocga
+	or	byte [equipment_list],equip_color_80 ; CGA adapter
+	jmp	.continue_init
+.nocga:
+	call	detect_mono
+	jnz	.nomono
+	or	byte [equipment_list],equip_mono ; Monochrome adapter
+	jmp	.continue_init
+.nomono:
+        call	no_video_post
+;install dummy int 10H handler for true headless mode
+	cld
+	push	es
+	xor	ax,ax
+	mov	es,ax
+	mov	di,10h*4
+	mov	ax,int_dummy
+	stosw
+	mov	ax,cs
+	stosw
+	pop	es
+	ret
+
+.continue_init:
+;%endif ;MACHINE_BOOK8088
+
+	mov	al,e_vid_no_bios
+	out	post_reg,al
+	mov	ah,byte [equipment_list] ; get equipment - low byte
+	and	ah,equip_video		; get video adapter type
+	mov	al,07h			; monochrome 80x25 mode
+	cmp	ah,equip_mono		; monochrome?
+	jz	.set_mode
+	mov	al,03h			; color 80x25 mode
+	cmp	ah,equip_color_80	; 80x25 color?
+	jz	.set_mode
+	mov	al,01h			; color 40x24 mode
+
+.set_mode:
+	mov	ah,00h			; INT 10, AH=00 - Set video mode
+	int	10h
+	ret
+
+;=========================================================================
 ; Memory error POST beep code
 ;-------------------------------------------------------------------------
 memory_error_post:
@@ -1188,49 +1237,7 @@ low_ram_ok:
 
 .no_video_bios:
 
-%ifdef MACHINE_BOOK8088 or MACHINE_MARTYPC or MACHINE_MISTER
-	call	detect_cga
-	jnz	.nocga
-	or	byte [equipment_list],equip_color_80 ; CGA adapter
-	jmp	.continue_init
-.nocga:
-	call	detect_mono
-	jnz	.nomono
-	or	byte [equipment_list],equip_mono ; Monochrome adapter
-	jmp	.continue_init
-.nomono:
-        call	no_video_post
-;install dummy int 10H handler for true headless mode
-	cld
-	push	es
-	xor	ax,ax
-	mov	es,ax
-	mov	di,10h*4
-	mov	ax,int_dummy
-	stosw
-	mov	ax,cs
-	stosw
-	pop	es
-	jmp	.video_initialized	
-
-.continue_init:
-%endif ;MACHINE_BOOK8088
-
-	mov	al,e_vid_no_bios
-	out	post_reg,al
-	mov	ah,byte [equipment_list] ; get equipment - low byte
-	and	ah,equip_video		; get video adapter type
-	mov	al,07h			; monochrome 80x25 mode
-	cmp	ah,equip_mono		; monochrome?
-	jz	.set_mode
-	mov	al,03h			; color 80x25 mode
-	cmp	ah,equip_color_80	; 80x25 color?
-	jz	.set_mode
-	mov	al,01h			; color 40x24 mode
-
-.set_mode:
-	mov	ah,00h			; INT 10, AH=00 - Set video mode
-	int	10h
+	call	init_videocard
 
 .video_initialized:
 
@@ -1269,7 +1276,7 @@ low_ram_ok:
 %ifdef MACHINE_FE2010A
 	call	detect_chipset		; detect and print chipset type
 %endif ; MACHINE_FE2010A
-%ifdef AT_RTC
+%ifdef AT_RTC or MACHINE_MISTER
 	call	print_rtc		; print current RTC time
 %endif ; AT_RTC
 	call	print_display		; print display type
@@ -1445,7 +1452,7 @@ config_table:
 ;		`-- DMA channel 3 used by hard disk BIOS
 %endif ; AT_RTC
 %else ; SECOND_PIC
-%ifdef AT_RTC
+%ifdef AT_RTC or MACHINE_MISTER
 	db	00100000b		; byte 5: feature byte 1
 ;		|||||||`-- system has dual bus (ISA and MCA)
 ;		||||||`-- bus is Micro Channel instead of ISA

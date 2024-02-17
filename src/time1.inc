@@ -340,3 +340,213 @@ int_70:
 %endif ; SECOND_PIC
 
 %endif ; AT_RTC
+
+%ifdef MACHINE_MISTER
+;=========================================================================
+; RTC Functions for MiSTer PC XT
+; Made by Serhii Liubshin 2024
+;-------------------------------------------------------------------------
+
+mister_cmos	equ	2C0h
+
+;=========================================================================
+; int_1A_fn02 - Read real time clock (RTC)
+; Input:
+;	AH = 02h - function 02h - read RTC time
+; Output:
+;	CF set if RTC update is in progress and operation was not performed
+;	CH = BCD hours
+;	CL = BCD minutes
+;	DH = BCD seconds
+;	DL - daylight savings flag: 00h = standard time, 01h = daylight time
+;-------------------------------------------------------------------------
+int_1A_fn02:
+	mov	dx,mister_cmos
+	mov	al,4
+	out	dx,al
+	inc	dx
+	in	al,dx
+	mov	ch,al
+	dec	dx
+	mov	al,2
+	out	dx,al
+	inc	dx
+	in	al,dx
+	mov	cl,al
+	dec	dx
+	mov	al,0
+	out	dx,al
+	inc	dx
+	in	al,dx
+	xor	dx,dx	;standard time always
+	mov	dh,al	
+	clc
+	jmp	int_1A_exitf
+
+;=========================================================================
+; int_1A_fn03 - Set real time clock
+; Input:
+;	AH = 03h - function 03h - set RTC time
+;	CH = BCD hours
+;	CL = BCD minutes
+;	DH = BCD seconds
+;	DL - daylight savings flag: 00h = standard time, 01h = daylight time
+; Output:
+;	None
+;-------------------------------------------------------------------------
+int_1A_fn03:
+	jmp	int_1A_exit
+
+;=========================================================================
+; int_1A_fn04 - Read date from real time clock
+; Input:
+;	AH = 04h - function 04h - read RTC date
+; Output:
+;	CF set if RTC update is in progress and operation was not performed
+;	CH = BCD century
+;	CL = BCD year
+;	DH = BCD month
+;	DL = BCD date
+;-------------------------------------------------------------------------
+int_1A_fn04:
+	mov	ch,20h	;century, fixme in year 3000
+	mov	dx,mister_cmos
+	mov	al,9
+	out	dx,al
+	inc	dx
+	in	al,dx
+	mov	cl,al	;year
+	dec	dx
+	mov	al,8
+	out	dx,al
+	inc	dx
+	in	al,dx
+	mov	ah,al	;month
+	dec	dx
+	mov	al,7
+	out	dx,al
+	inc	dx
+	in	al,dx
+	mov	dl,al
+	mov	dh,ah
+	clc
+	jmp	int_1A_exitf
+
+;=========================================================================
+; int_1A_fn05 - Set date in real time clock
+; Input:
+;	AH = 05h - function 05h - set RTC date
+;	CH = BCD century
+;	CL = BCD year
+;	DH = BCD month
+;	DL = BCD date
+; Output:
+;	None
+;-------------------------------------------------------------------------
+int_1A_fn05:
+	jmp	int_1A_exit
+
+;=========================================================================
+; int_1A_fn06 - Set real time clock alarm
+; Input:
+;	AH = 06h - function 06h - set RTC alarm time
+;	CH = BCD hours
+;	CL = BCD minutes
+;	DH = BCD seconds
+; Output:
+;	CF = 1 - alarm already set
+;-------------------------------------------------------------------------
+int_1A_fn06:
+	jmp	int_1A_exitf
+
+;=========================================================================
+; int_1A_fn07 - Reset real time clock alarm
+; Input:
+;	AH = 07h - function 07h - set RTC time
+; Output:
+;	None
+;-------------------------------------------------------------------------
+int_1A_fn07:
+	jmp	int_1A_exit
+
+;=========================================================================
+; print_rtc - print current RTC date and time
+; Input:
+;	none
+; Output:
+;	date and time are printed in YYYY-MM-DD hh:mm:ss format
+; Notes:
+;	There is a slight probability of getting inconsistent printout.
+;	In case the function is called just before midnight, it could
+;	print the previos day's date and next day's time.
+;-------------------------------------------------------------------------
+print_rtc:
+	push	ax
+	push	bx
+	push	cx
+	push	dx
+	push	si
+	mov	si,msg_rtc
+	call	print
+
+; print date
+	mov	ah,04h
+	int	1Ah			; read RTC date
+					; CH = BCD century
+					; CL = BCD year
+					; DH = BCD month
+					; DL = BCD date (day of month)
+	mov	ax,cx
+	call	print_hex		; print 4-digit year
+	mov	ax,(0Eh << 8) + '-'
+	mov	bx,0007h
+	int	10h			; print dash (-)
+
+	mov	al,dh
+	call	print_byte		; print 2-digit month
+	mov	ax,(0Eh << 8) + '-'
+	mov	bx,0007h
+	int	10h			; print dash (-)
+
+	mov	al,dl
+	call	print_byte		; print 2-digit date (day of month)
+
+	mov	ax,(0Eh << 8) + ' '
+	mov	bx,0007h
+	int	10h			; print space ( )
+
+; print time
+	mov	ah,02h
+	int	1Ah			; read RTC time
+					; CH = BCD hours
+					; CL = BCD minutes
+					; DH = BCD seconds
+					; DL = daylight saving flag
+	mov	al,ch
+	call	print_byte		; print 2-digit hours
+	
+	mov	ax,(0Eh << 8) + ':'
+	mov	bx,0007h
+	int	10h			; print colon (:)
+
+	mov	al,cl
+	call	print_byte		; print 2-digit minutes
+	
+	mov	ax,(0Eh << 8) + ':'
+	mov	bx,0007h
+	int	10h			; print colon (:)
+
+	mov	al,dh
+	call	print_byte		; print 2-digit seconds
+	mov	si,msg_crlf
+	call	print
+
+.exit:
+	pop	si
+	pop	dx
+	pop	cx
+	pop	bx
+	pop	ax
+	ret
+
+%endif

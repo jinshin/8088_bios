@@ -139,6 +139,7 @@
 ;%define AT_RTC_NVRAM
 ;%define EBDA_SIZE	1		; 1KB reserved for EBDA
 %define BIOS_SETUP	1	
+;%define AT_RTC		1
 %endif 
 
 

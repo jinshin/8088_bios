@@ -44,7 +44,7 @@ int_1A:
 .dispatch:
 	dw	int_1A_fn00
 	dw	int_1A_fn01
-%ifdef AT_RTC
+%ifdef AT_RTC or MACHINE_MISTER
 	dw	int_1A_fn02
 	dw	int_1A_fn03
 	dw	int_1A_fn04

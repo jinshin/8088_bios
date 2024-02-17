@@ -124,7 +124,7 @@
 ;%define AT_KEYBOARD			; Has AT-compatible keyboard controller
 ;%define DISABLE_KBD_DURING_INTERRUPTS	; Don't disable keyboard in INT1
 %define MIN_RAM_SIZE	32		; At least 32 KiB to boot the system
-%define MAX_RAM_SIZE	640		; Scan this much memory during POST
+%define MAX_RAM_SIZE	704		; Hercules RAM starts at 0xB0000, so this should be safe enough
 %define RAM_TEST_BLOCK	16384		; block size for RAM test
 %define BOOT_SOUND	1		; Now it plays floppy seek and beep sound
 ;%define NO_FLOPPY	1		; Book8088 has no floppy drives

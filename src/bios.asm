@@ -343,23 +343,10 @@ int_75:
 ;-------------------------------------------------------------------------
 boot_os:
 
-;-------------------------------------------------------------------------
-; Check for F1 (setup key), run setup utility if pressed
-
-	mov	ah,01h
-	int	16h
-	jz	.no_key
-	mov	ah,00h
-	int	16h			; read the keystroke
-	cmp	ax,3B00h		; F1?
-	jne	.no_key
-	or	byte [post_flags],post_setup
-.no_key:
-
+%ifdef BIOS_SETUP
+	call	check_setup_key
 	test	byte [post_flags],post_setup
 	jz	.no_setup
-
-%ifdef BIOS_SETUP
 	call	nvram_setup
 %endif ; BIOS_SETUP
 
@@ -680,6 +667,21 @@ no_video_post:
 	call	delay_15us
 	mov	bl,2
 	call	beep
+	ret
+
+;=========================================================================
+; Check for F1 key
+;-------------------------------------------------------------------------
+check_setup_key:
+	mov	ah,01h
+	int	16h
+	jz	.test_no_key
+	mov	ah,00h
+	int	16h			; read the keystroke
+	cmp	ax,3B00h		; F1?
+	jne	.test_no_key
+	or	byte [post_flags],post_setup
+.test_no_key:
 	ret
 
 ;=========================================================================
@@ -1261,7 +1263,6 @@ low_ram_ok:
 	call	print
 %endif ; BIOS_SETUP
 
-
 ;-------------------------------------------------------------------------
 ; detect and print availability of various equipment
 
@@ -1339,9 +1340,21 @@ low_ram_ok:
 	call	print
 %endif ; EBDA_SIZE
 
+%if 0
+%ifdef MACHINE_MISTER
+	mov	cx,10
+.delay:
+	push	cx
+	mov	cx,6666			;0.1 second
+	call	delay_15us
+	call	check_setup_key
+	pop	cx
+	loop	.delay
+%endif
+%endif
 	call	detect_rom_ext		; detect and initialize extension ROMs
 
-	jmp boot_os
+	jmp	boot_os
 
 ;=========================================================================
 ; int_02 - NMI

@@ -28,7 +28,7 @@
 %substr	BDAY		__UTC_DATE__	9,2
 
 %strcat DATE		BMONTH,'/',BDAY,'/',BYEAR	; BIOS release date MM/DD/YY
-%define VERSION		'1.0.7'		; BIOS version
+%define VERSION		'1.0.0'		; BIOS version
 
 ; Machine type is defined in the Makefile
 ;%define MACHINE_XI8088			; Xi 8088
@@ -71,6 +71,7 @@
 
 ; Settings for Book8088
 %ifdef MACHINE_BOOK8088
+%define VERSION		'1.0.7'		; BIOS version
 %define BOOT_SOUND	1		; Now it plays floppy seek and beep sound
 %ifdef BOOT_SOUND
 %define	START		08000h		; BIOS starts at 08000h - 32 KiB, we need that to store sound
@@ -117,29 +118,18 @@
 
 ; Settings for MiSTer PC XT
 %ifdef MACHINE_MISTER
-;%define MACHINE_XT
-;%define MACHINE_XI8088
+%define VERSION		'1.0.0b'	; BIOS version
 %define	START		8000h		; BIOS starts at offset 8000h
 %define MODEL_BYTE	0FEh		; IBM PC/XT
-;%define AT_KEYBOARD			; Has AT-compatible keyboard controller
-;%define DISABLE_KBD_DURING_INTERRUPTS	; Don't disable keyboard in INT1
 %define MIN_RAM_SIZE	32		; At least 32 KiB to boot the system
 %define MAX_RAM_SIZE	704		; Hercules RAM starts at 0xB0000, so this should be safe enough
 %define RAM_TEST_BLOCK	16384		; block size for RAM test
 %define BOOT_SOUND	1		; Now it plays floppy seek and beep sound
-;%define NO_FLOPPY	1		; Book8088 has no floppy drives
-;%define CH375_FLOPPY	1		; Emulate floppy if flash drive inserted
 %define XT_CF		1		; Detect Compact Flash card
-;%define XT_CF_FULL	1		; INT 13h for XT-IDE tryouts
 %define XTIDE		1		; For PCem
-;%define AT_RTC_NVRAM			; Use AT RTC for BIOS configuration
 %define ALT_SOUND	1		; Alternate sound, choosen by playing notes on online piano
 %define PIT_DELAY	1
-;%define AT_RTC				; Has AT-compatible RTC
-;%define AT_RTC_NVRAM
-;%define EBDA_SIZE	1		; 1KB reserved for EBDA
 %define BIOS_SETUP	1	
-;%define AT_RTC		1
 %endif 
 
 

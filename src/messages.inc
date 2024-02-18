@@ -30,9 +30,6 @@ msg_copyright	db	0Dh, 0Ah
 		db	"Micro 8088"
 %endif ; MACHINE_FE2010A
 %ifdef MACHINE_BOOK8088
-;		db	"01234567890123456789012345678901234567890123456789012345678901234567890123456789"
-;This line is for calibration, sometimes display is shifted left
-;		db	"--------------------------------------------------------------------------------"
 		db	"Book8088"
 %endif ; MACHINE_BOOK8088
 %ifdef MACHINE_MISTER
@@ -53,8 +50,8 @@ msg_copyright	db	0Dh, 0Ah
 %endif
 		db	"Distributed under the terms of "
 		db	"the GNU General Public License", 0Dh, 0Ah
-%ifdef MACHINE_BOOK8088
-;		db	"--------------------------------------------------------------------------------"
+%ifdef MACHINE_MISTER
+		db	00h ;Or the topmost copyright string will be overwritten by XUB
 %endif
 msg_crlf	db      0Dh, 0Ah, 00h
 msg_none	db	'none', 00h

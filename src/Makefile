@@ -167,6 +167,31 @@ bios-mister-e.rom: bios-mister.bin
 	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" >> $@
 	cat $(MISTER) >> $@
 
+TEST=bios-test.bin
+
+bios-test.rom: bios-test.bin
+	@echo "Generating $@"
+	if [ -f $@ ]; then rm $@; fi
+	$(eval XTIDESIZE2=$(shell du -B 512 --apparent-size $(MXTIDE_300_FULL) | awk '{print $$1;}'))
+	$(eval BIOSSIZE=$(shell du -B 512 --apparent-size $(TEST) | awk '{print $$1;}'))
+	# We have 64K (128 pages) BIOS chip
+	$(eval GAPSIZE=$(shell awk -v SZ1=$(BIOSSIZE) -v SZ3=$(XTIDESIZE2) 'BEGIN { print 128-SZ1-SZ3; }'))
+	@echo "GAPSIZE: $(GAPSIZE)"
+	cat $(MXTIDE_300_FULL) >> $@
+	# Fill gap to the main BIOS, use 512 blocks corresponding to BIOS page size
+	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" >> $@
+	cat $(TEST) >> $@
+
+bios-test-e.rom: bios-test.bin
+	@echo "Generating $@"
+	if [ -f $@ ]; then rm $@; fi
+	$(eval BIOSSIZE=$(shell du -B 512 --apparent-size $(TEST) | awk '{print $$1;}'))
+	# We have 64K (128 pages) BIOS chip
+	$(eval GAPSIZE=$(shell awk -v SZ1=$(BIOSSIZE) 'BEGIN { print 128-SZ1-SZ3; }'))
+	@echo "GAPSIZE: $(GAPSIZE)"
+	# Fill gap to the main BIOS, use 512 blocks corresponding to BIOS page size
+	dd if=/dev/zero ibs=512 count=$(GAPSIZE) | LANG=C tr "\000" "\377" >> $@
+	cat $(TEST) >> $@
 
 clean:
 	rm -f bios-test.rom bios-martypc.rom bios-micro8088.lst bios-xi8088.lst bios-book8088.lst bios-xt.lst bios-micro8088.bin bios-xi8088.bin bios-book8088.bin bios-xt.bin bios-martypc.bin bios-martypc.lst $(IMAGES)

@@ -932,7 +932,7 @@ cpu_ok:
 	out	ppi_pb_reg,al		; and also turn off the speaker
 %endif ; MACHINE_BOOK8088
 
-%ifdef MACHINE_XT or MACHINE_MISTER
+%ifdef MACHINE_XT or MACHINE_MISTER	; This code enables speaker
 	mov	al,ppi_cwd_value	; PPI port A and port C inputs
 	out	ppi_cwd_reg,al		; PPI control word register
 	mov	al,10100101b		; Clear keyboard, disable keyboard clock
@@ -1162,6 +1162,9 @@ low_ram_ok:
 	and	al,01111111b		; unset keyboard clear bit
 	out	ppi_pb_reg,al
 %endif ; MACHINE_BOOK8088
+
+;2Do: ask Sergey why it's here, maybe a stuck key detect placeholder?
+%if 0
 	mov	cx,1000
 .kbd_flush:
 	mov 	ah,01h
@@ -1171,6 +1174,7 @@ low_ram_ok:
 	int	16h
 .kbd_no_key:
 	loop	.kbd_flush
+%endif
 
 %endif ; AT_KEYBOARD
 
@@ -1217,7 +1221,6 @@ low_ram_ok:
 	or	[equipment_list],al
 %endif ; MACHINE_FE2010A or MACHINE_XT
 
-; 
 ;-------------------------------------------------------------------------
 ; look for video BIOS, initialize it if present
 
@@ -1238,7 +1241,6 @@ low_ram_ok:
 	jmp	.video_initialized
 
 .no_video_bios:
-
 	call	init_videocard
 
 .video_initialized:
@@ -1264,15 +1266,33 @@ low_ram_ok:
 %endif ; BIOS_SETUP
 
 ;-------------------------------------------------------------------------
+; MiSTer PC XT tryouts
+%if 0
+	mov	al,0FFh
+	out	60h,al
+	in	al,60h
+	mov	ah,al
+	in	al,60h
+	call	print_hex		
+	mov	al,0F6h
+	out	60h,al
+	in	al,60h
+	mov	ah,al
+	in	al,60h
+	call	print_hex		
+	mov	al,0EEh
+	out	60h,al
+	in	al,60h
+	mov	ah,al
+	in	al,60h
+	call	print_hex		
+%endif
+
+;-------------------------------------------------------------------------
 ; detect and print availability of various equipment
 
 	call	detect_cpu		; detect and print CPU type
 	call	detect_fpu		; detect and print FPU presence
-
-%ifdef XT_CF
-;Now might be good time to read settings from boot sector
-        call	detect_xtcf
-%endif
 
 %ifdef MACHINE_FE2010A
 	call	detect_chipset		; detect and print chipset type
@@ -1287,6 +1307,11 @@ low_ram_ok:
 	call	detect_serial		; detect serial ports and print findings
 	call	detect_parallel		; detect parallel ports and print
 					; findings
+%ifdef XT_CF
+;Now might be good time to read settings from boot sector
+        call	detect_xtcf
+%endif
+
 	call	detect_floppy		; detect floppy drive types
 
 %ifdef CH375_FLOPPY
@@ -1340,18 +1365,6 @@ low_ram_ok:
 	call	print
 %endif ; EBDA_SIZE
 
-%if 0
-%ifdef MACHINE_MISTER
-	mov	cx,10
-.delay:
-	push	cx
-	mov	cx,6666			;0.1 second
-	call	delay_15us
-	call	check_setup_key
-	pop	cx
-	loop	.delay
-%endif
-%endif
 	call	detect_rom_ext		; detect and initialize extension ROMs
 
 	jmp	boot_os

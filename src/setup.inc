@@ -24,8 +24,13 @@
 ;=========================================================================
 
 %ifndef CH375_FLOPPY
+%ifndef MACHINE_MISTER
 default_floppy	db	type_1440 << 4	; one 1.44 MB floppy drive
 default_equip	db	21h		; CGA 80x25, one floppy drive
+%else	;MiSTer has two floppy drives
+default_floppy	db	type_1440 | (type_1440 << 4)	; two 1.44 MB floppy drives
+default_equip	db	40h | 21h			; CGA 80x25, two floppy drives
+%endif
 %else
 default_floppy	db	0		; No drives
 default_equip	db	20h		; CGA 80x25, no floppy drive

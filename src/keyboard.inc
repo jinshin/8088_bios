@@ -277,6 +277,7 @@ int_09:
 	mov	al,ah			; restore AL / scancode
 %endif ; MACHINE_BOOK8088
 	sti
+%ifndef MACHINE_BOOK8088 ; Not needed, keyboard is emulated
 %ifdef AT_KEYBOARD
 	mov	ah,4Fh
 	stc
@@ -301,7 +302,6 @@ int_09:
 	jmp	keyboard_int_exit
 
 ; Note: other KBC response codes have their MSB bit set and will be ignored
-
 .3:
 
 ; check for 0E0h and 0E1h scancodes, set flags in kbd_flags_3
@@ -319,7 +319,7 @@ int_09:
 	jmp	keyboard_int_exit
 
 ; check for various <Ctrl>+<Alt>+<Key> combinations:
-
+%endif ; MACHINE_BOOK8088
 .5:
 	mov	bl,byte [kbd_flags_1]
 	and	bl,kbd_alt_bit|kbd_ctrl_bit
@@ -544,7 +544,6 @@ keyboard_int_exit:
 %endif ; AT_KEYBOARD
 	mov	al,20h			; send EOI (end of interrupt)
 	out	pic1_reg0,al		; to the 8259A PIC.
-
 keyboard_int_exit1:
 	pop	ds
 	pop	bx
